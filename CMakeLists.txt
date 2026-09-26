@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(saci VERSION 0.1.0 LANGUAGES CXX)
+project(saci VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,15 +24,16 @@ target_compile_features(saci PRIVATE cxx_std_20)
 target_compile_options(saci PRIVATE -Wall -Wextra)
 
 # Lua (opcional): scripts por-site/per-canal carregados em runtime.
+# sol2 vem vendored em vendor/sol (single header, MIT) — sem download externo.
 if(SACI_WITH_LUA)
     find_package(Lua REQUIRED)
-    find_path(SOL2_INCLUDE_DIR sol/sol.hpp)
-    if(SOL2_INCLUDE_DIR)
+    set(SOL2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+    if(EXISTS "${SOL2_INCLUDE_DIR}/sol/sol.hpp")
         target_compile_definitions(saci PRIVATE SACI_WITH_LUA)
         target_include_directories(saci PRIVATE ${LUA_INCLUDE_DIR} ${SOL2_INCLUDE_DIR})
         target_link_libraries(saci PRIVATE ${LUA_LIBRARIES})
     else()
-        message(WARNING "sol2 nao encontrado; compilando sem Lua")
+        message(WARNING "vendor/sol/sol.hpp ausente; compilando sem Lua")
     endif()
 endif()
 

@@ -160,19 +160,20 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 
 ## 5. Pontos de atenção (esqueleto ≠ produção)
 
-1. **Pipe bidirecional pendente**: `run_capture`/`run_quiet` capturam stdout
-   mas ainda não alimentam stdin do tradutor/TTS (o texto vai de forma
-   simplificada). O *contrato* das classes (`translate(text)`,
-   `synthesize(text)`) já está correto — falta o `run_capture2` com pipe
-   de entrada. É o próximo passo natural.
+1. ~~**Pipe bidirecional pendente**~~ **(resolvido na v0.2)**:
+   `run_capture2` em `src/proc.cpp` alimenta stdin e captura stdout com
+   poll() nao-bloqueante (sem deadlock — o selftest exerce 300 KiB).
+   Tradutor e TTS viajam por ele; `./build/saci --selftest` valida.
 2. **yt-dlp como subprocesso**: a extração de URLs segue fora do C++
    (divisão honesta de trabalho — o C++ orquestra; yt-dlp/ffmpeg fazem o
    demux/mux pesado). Alternativa futura: libcurl + API Piped/Invidious.
 3. **Controle adaptativo em runtime**: a estimativa de banda → troca de degrau
    está modelada (`QualityLadder::select`) mas o loop de feedback em
    background (thread/co_await medindo taxa do pipe) ainda não existe.
-4. **Tradução em lote**: chamar `argos-translate` por segmento é lento; o
-   ideal é traduzir o SRT inteiro numa passada (o formato preserva índices).
+4. ~~**Tradução em lote**~~ **(resolvido na v0.2)**:
+   `ArgosEngine::translate_batch` envia o SRT inteiro numa invocação (caminho
+   rápido) e cai no por-segmento quando o CLI devolve contagem de linhas
+   inesperada (caminho correto). Janelas SRT intactas em ambos.
 5. **Erros**: falhas de rede no `StreamMux` não tentam re-conectar; o modo
    `fifo_mode` (sobreviver a quedas com fila circular em disco) está no
    `Config`/`RingBuffer` mas o re-spawn do mux é futuro.
@@ -184,10 +185,12 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 
 ## 6. Roadmap sugerido
 
-| Ordem | Tarefa | Arquivos |
-|---|---|---|
-| 1 | `run_capture2` com stdin+stdout | `proc.hpp/cpp` |
-| 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` |
-| 3 | Loop adaptativo de banda → degrau | `stream.hpp`, novo `src/bw_probe.cpp` |
-| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` |
-| 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp` |
+| Ordem | Tarefa | Arquivos | Estado |
+|---|---|---|---|
+| 1 | `run_capture2` com stdin+stdout | `proc.hpp/cpp` | ✅ v0.2 (poll não-bloqueante + selftest 300 KiB) |
+| 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` | ✅ v0.2 (batch + fallback por segmento) |
+| 3 | Loop adaptativo de banda → degrau | `stream.hpp`, novo `src/bw_probe.cpp` | pendente |
+| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | pendente |
+| 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp` | pendente |
+| 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
+| 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |

@@ -41,11 +41,15 @@ int Orchestrator::run(const std::string& url,
     using namespace std::filesystem;
     create_directories(workdir);
 
+    // v0.2: politicas por-site — o config efetivo mistura o global com a
+    // primeira regra de site que casa com a URL (ver Config::effective_for).
+    const Config eff = cfg_.effective_for(url);
+
     // 1. Legendas ------------------------------------------------------
     enter(Stage::FetchSubs);
     std::vector<std::string> dl = {"yt-dlp",
         "--write-subs", "--write-auto-subs",
-        "--sub-langs", cfg_.sub_lang_pref,
+        "--sub-langs", eff.sub_lang_pref,
         "--skip-download", "-P", workdir.string(), url};
     int code = run_quiet(dl);
     if (code != 0) { enter(Stage::Error); return code; }
@@ -63,16 +67,24 @@ int Orchestrator::run(const std::string& url,
     auto segments = parse_srt(ss.str());
     if (segments.empty()) { enter(Stage::Error); return 3; }
 
-    // 3. Traducao ------------------------------------------------------
+    // 3. Traducao (lote, uma unica invocacao quando o CLI colabora) -----
     enter(Stage::Translate);
-    ArgosEngine tr("en", cfg_.target_lang);
+    ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd);
+    std::vector<std::string> texts;
+    texts.reserve(segments.size());
+    for (auto& s : segments) texts.push_back(s.text);
+
     std::vector<std::string> pt;
-    pt.reserve(segments.size());
-    for (auto& s : segments) pt.push_back(tr.translate(s.text));
+    if constexpr (requires { tr.translate_batch(texts); }) {
+        pt = tr.translate_batch(texts);  // caminho rapido v0.2
+    } else {
+        pt.reserve(segments.size());
+        for (auto& s : segments) pt.push_back(tr.translate(s.text));
+    }
 
     // 4. TTS -----------------------------------------------------------
     enter(Stage::Tts);
-    PiperEngine piper(cfg_.tts_bin, cfg_.tts_voice);
+    PiperEngine piper(eff.tts_bin, eff.tts_voice);
     std::vector<Utterance> utts;
     utts.reserve(segments.size());
     for (std::size_t i = 0; i < segments.size(); ++i)
@@ -80,9 +92,9 @@ int Orchestrator::run(const std::string& url,
 
     // 5. Plano de sincronia --------------------------------------------
     enter(Stage::SyncFit);
-    SyncFitter fitter(SyncPolicy{cfg_.tempo_min, cfg_.tempo_max,
-                                 cfg_.drift_threshold_ms});
-    SyncFitter::DriftCorrector drift(cfg_.drift_threshold_ms);
+    SyncFitter fitter(SyncPolicy{eff.tempo_min, eff.tempo_max,
+                                 eff.drift_threshold_ms});
+    SyncFitter::DriftCorrector drift(eff.drift_threshold_ms);
     NarrationPlan plan;
     for (std::size_t i = 0; i < segments.size(); ++i) {
         auto f = fitter.fit(utts[i].measured_ms, segments[i].window_ms());
@@ -99,9 +111,9 @@ int Orchestrator::run(const std::string& url,
     enter(Stage::StreamMux);
     MuxSession sess;
     sess.source_argv = {"yt-dlp", "-f",
-                        yt_dlp_format_selector(cfg_.max_height), url};
+                        yt_dlp_format_selector(eff.max_height), url};
     sess.narration_path = narration.string();
-    sess.player_argv = {cfg_.player, "--cache=yes", "--really-quiet", "-"};
+    sess.player_argv = {eff.player, "--cache=yes", "--really-quiet", "-"};
     auto h = spawn_mux(sess);
     int rc = h.wait_all();
 

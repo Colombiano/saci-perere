@@ -4,12 +4,18 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <cstring>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
+
+#include "saci/config.hpp"
 
 namespace {
 
@@ -68,6 +74,136 @@ int run_quiet(const std::vector<std::string>& argv) {
     int status = 0;
     ::waitpid(pid, &status, 0);
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+std::pair<int, std::string> run_capture2(const std::vector<std::string>& argv,
+                                         const std::string& input,
+                                         std::size_t max_output) {
+    int in_fds[2], out_fds[2];
+    if (::pipe(in_fds) == -1 || ::pipe(out_fds) == -1)
+        throw std::runtime_error(std::strerror(errno));
+
+    pid_t pid = ::fork();
+    if (pid == -1) throw std::runtime_error(std::strerror(errno));
+    if (pid == 0) {
+        ::dup2(in_fds[0], STDIN_FILENO);
+        ::dup2(out_fds[1], STDOUT_FILENO);
+        // stderr continua no terminal: diagnóstico do subprocesso visível.
+        ::close(in_fds[0]); ::close(in_fds[1]);
+        ::close(out_fds[0]); ::close(out_fds[1]);
+        exec_or_die(argv);
+    }
+    ::close(in_fds[0]);
+    ::close(out_fds[1]);
+
+    // Lados do PAI nao-bloqueantes: escrevemos/lemos ate EAGAIN e voltamos
+    // ao poll. Com fds bloqueantes um write grande travaria para sempre
+    // quando o filho, ecoando, encher o proprio stdout (deadlock real,
+    // pego pelo selftest de 300 KiB na v0.2).
+    ::fcntl(in_fds[1], F_SETFL, ::fcntl(in_fds[1], F_GETFL) | O_NONBLOCK);
+    ::fcntl(out_fds[0], F_SETFL, ::fcntl(out_fds[0], F_GETFL) | O_NONBLOCK);
+
+    std::string out;
+    out.reserve(std::min(input.size(), max_output));
+    std::size_t written = 0;
+    bool in_open = true, out_open = true;
+    std::array<char, 65536> buf{};
+
+    while (in_open || out_open) {
+        ::pollfd pfds[2];
+        pfds[0] = {out_fds[0], out_open ? short(POLLIN) : short(0), 0};
+        pfds[1] = {in_fds[1],  in_open  ? short(POLLOUT) : short(0), 0};
+        int r = ::poll(pfds, 2, -1);
+        if (r == -1) {
+            if (errno == EINTR) continue;
+            break;
+        }
+
+        if (out_open && (pfds[0].revents & (POLLIN | POLLHUP))) {
+            for (;;) {  // drena tudo o que estiver disponivel
+                ssize_t n = ::read(out_fds[0], buf.data(), buf.size());
+                if (n > 0) {
+                    if (out.size() + static_cast<std::size_t>(n) > max_output) {
+                        ::kill(pid, SIGKILL);
+                        ::waitpid(pid, nullptr, 0);
+                        ::close(out_fds[0]);
+                        if (in_open) ::close(in_fds[1]);
+                        throw std::length_error("run_capture2: stdout estourou max_output");
+                    }
+                    out.append(buf.data(), static_cast<std::size_t>(n));
+                } else if (n == 0) {
+                    out_open = false; ::close(out_fds[0]); break;
+                } else if (errno == EINTR) {
+                    continue;
+                } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    break;
+                } else {
+                    out_open = false; ::close(out_fds[0]); break;
+                }
+            }
+        }
+
+        if (in_open && (pfds[1].revents & (POLLOUT | POLLERR | POLLHUP))) {
+            while (written < input.size()) {  // enche ate o pipe aceitar
+                ssize_t n = ::write(in_fds[1], input.data() + written,
+                                    input.size() - written);
+                if (n > 0) { written += static_cast<std::size_t>(n); continue; }
+                if (n == -1 && errno == EINTR) continue;
+                break;  // EAGAIN: buffer cheio — poll decide quando voltar
+            }
+            if (written >= input.size() || (pfds[1].revents & (POLLERR | POLLHUP))) {
+                in_open = false;
+                ::close(in_fds[1]);  // EOF pro filho
+            }
+        }
+    }
+
+    int status = 0;
+    ::waitpid(pid, &status, 0);
+    int code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    return {code, std::move(out)};
+}
+
+int selftest() {
+    bool ok = true;
+    auto check = [&](const char* nome, bool pass, std::string extra = "") {
+        std::cerr << "[selftest] " << (pass ? "PASS " : "FAIL ")
+                  << nome << (extra.empty() ? "" : "  (" + extra + ")") << "\n";
+        ok = ok && pass;
+    };
+
+    // 1) eco bidirecional simples
+    {
+        auto [code, out] = run_capture2({"cat"}, "saci-perere\n");
+        check("cat ecoa stdin", code == 0 && out == "saci-perere\n",
+              "exit=" + std::to_string(code));
+    }
+    // 2) entrada de 300 KiB — maior que o buffer do pipe; sem poll() isto
+    //    daria deadlock garantido (cat ecoa e bloqueia, pai bloqueia na escrita)
+    {
+        std::string big(300 * 1024, 'x');
+        auto [code, out] = run_capture2({"cat"}, big);
+        check("cat ecoa 300 KiB (sem deadlock)", code == 0 && out == big,
+              "recebidos=" + std::to_string(out.size()));
+    }
+    // 3) sem entrada: processo que so imprime
+    {
+        auto [code, out] = run_capture2({"echo", "ok"}, "");
+        check("echo sem stdin", code == 0 && out.find("ok") != std::string::npos);
+    }
+#ifdef SACI_WITH_LUA
+    // 4) config via Lua: o script RETORNA a tabela que preenche Config.
+    //    (rode da raiz do repo: ./build/saci --selftest)
+    try {
+        Config c = Config::load("lua/default_config.lua");
+        check("config Lua (tabela retornada preenche Config)",
+              c.target_lang == "pt-BR" && c.source_lang == "en" &&
+              c.max_height == 360 && c.sites.empty());
+    } catch (const std::exception& e) {
+        check("config Lua (tabela retornada preenche Config)", false, e.what());
+    }
+#endif
+    return ok ? 0 : 1;
 }
 
 } // namespace saci

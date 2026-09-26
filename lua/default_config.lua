@@ -1,5 +1,8 @@
 -- Ontologia em Lua: politicas declarativas do pipeline saci.
--- Mapeia 1:1 para saci::Config (ver docs/ONTOLOGY.md).
+-- Este script RETORNA a tabela de politicas, que preenche saci::Config
+-- (ver docs/ONTOLOGY.md e include/saci/config.hpp). Sem Lua compilado,
+-- um arquivo "chave = valor" com as mesmas chaves planas serve de fallback
+-- (mas sem a tabela `sites` — politica por-site e privilegio de Lua).
 
 return {
   -- midia
@@ -8,7 +11,11 @@ return {
 
   -- legenda / traducao
   sub_lang_pref    = "en.*",       -- regex de idiomas aceitos na busca
-  target_lang      = "pt-BR",
+  source_lang      = "en",         -- lingua da legenda de origem
+  target_lang      = "pt-BR",      -- destino da narracao.
+                                   -- ROADMAP DE IDIOMAS: nas proximas
+                                   -- versoes o mesmo pipeline atende "es"
+                                   -- (espanhol) e "zh" (chines).
 
   -- tts (Piper)
   tts_bin          = "piper",
@@ -25,4 +32,15 @@ return {
   -- rede / disco
   ring_bytes       = 50 * 1024 * 1024,
   fifo_mode        = false,        -- true = sobrevive a quedas (fila em disco)
+
+  -- politicas por-site/per-canal: a PRIMEIRA regra que casar com a URL
+  -- vence (substring simples). Campo ausente/zero = herda o global.
+  -- Exemplos comentados para nao surpreender ninguem:
+  sites = {
+    -- { pattern = "youtube.com", max_height = 360 },
+    -- canal especifico merece voz propria:
+    -- { pattern = "youtube.com/@CanalDeAulas", tts_voice = "pt_BR-faber-medium.onnx" },
+    -- aula em espanhol? quando o roadmap de idiomas aterrizar:
+    -- { pattern = "example.com/aulas-es", source_lang = "es", target_lang = "pt-BR" },
+  },
 }

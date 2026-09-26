@@ -33,9 +33,12 @@ Utterance PiperEngine::synthesize(std::size_t index,
     std::filesystem::create_directories(outdir);
     auto wav = outdir / ("utt_" + std::to_string(index) + ".wav");
 
-    int code = run_quiet({bin_.string(), "--model", voice_.string(),
-                          "--output_file", wav.string(), "--stdin"});
-    (void)text;  // esqueleto: piper le o texto de stdin; run_quiet2 faria pipe.
+    // v0.2: o texto viaja pelo stdin de verdade (run_capture2); stdout do
+    // piper e descartado — o que interessa e o WAV em disco (medido depois).
+    auto [code, unused] = run_capture2({bin_.string(), "--model", voice_.string(),
+                                        "--output_file", wav.string(), "--stdin"},
+                                       text + "\n");
+    (void)unused;
     if (code != 0)
         throw std::runtime_error("piper falhou na fala " + std::to_string(index));
 

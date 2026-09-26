@@ -4,9 +4,16 @@
 #include <sstream>
 #include <stdexcept>
 
+#ifdef SACI_WITH_LUA
+#include <sol/sol.hpp>
+#endif
+
 namespace {
 
+#ifndef SACI_WITH_LUA
 // Fallback sem Lua: formato simples "chave = valor", '#' comenta.
+// Politicas por-site exigem Lua (tabelas aninhadas) — de propósito:
+// incentiva o script como fonte de verdade rica.
 saci::Config parse_kv(const std::string& text) {
     saci::Config c;
     std::istringstream in(text);
@@ -26,6 +33,7 @@ saci::Config parse_kv(const std::string& text) {
         if (k == "max_height") c.max_height = std::stoi(v);
         else if (k == "player") c.player = v;
         else if (k == "sub_lang_pref") c.sub_lang_pref = v;
+        else if (k == "source_lang") c.source_lang = v;
         else if (k == "target_lang") c.target_lang = v;
         else if (k == "tts_bin") c.tts_bin = v;
         else if (k == "tts_voice") c.tts_voice = v;
@@ -38,6 +46,7 @@ saci::Config parse_kv(const std::string& text) {
     }
     return c;
 }
+#endif // SACI_WITH_LUA
 
 } // namespace
 
@@ -45,22 +54,42 @@ namespace saci {
 
 Config Config::load(const std::filesystem::path& file) {
 #ifdef SACI_WITH_LUA
+    // v0.2: o script RETORNA a tabela de politicas (ver lua/default_config.lua).
+    // Antes liamos variaveis globais — um `return {...}` nunca era visto e
+    // os defaults de C++ sempre venciam. Agora a tabela retornada e a fonte.
     sol::state lua;
     lua.open_libraries(sol::lib::base);
-    lua.script_file(file.string());
+    sol::table t = lua.script_file(file.string());
+
     Config c;
-    c.max_height        = lua.get_or("max_height", 360);
-    c.player            = lua.get_or<std::string>("player", "mpv");
-    c.sub_lang_pref     = lua.get_or<std::string>("sub_lang_pref", "en.*");
-    c.target_lang       = lua.get_or<std::string>("target_lang", "pt-BR");
-    c.tts_bin           = lua.get_or<std::string>("tts_bin", "piper");
-    c.tts_voice         = lua.get_or<std::string>("tts_voice", "");
-    c.translate_cmd     = lua.get_or<std::string>("translate_cmd", "argos-translate");
-    c.tempo_min         = lua.get_or("tempo_min", 0.85);
-    c.tempo_max         = lua.get_or("tempo_max", 1.30);
-    c.drift_threshold_ms= lua.get_or("drift_threshold_ms", 300L);
-    c.ring_bytes        = lua.get_or("ring_bytes", std::int64_t{50} << 20);
-    c.fifo_mode         = lua.get_or("fifo_mode", false);
+    c.max_height         = t.get_or("max_height", 360);
+    c.player             = t.get_or<std::string>("player", "mpv");
+    c.sub_lang_pref      = t.get_or<std::string>("sub_lang_pref", "en.*");
+    c.source_lang        = t.get_or<std::string>("source_lang", "en");
+    c.target_lang        = t.get_or<std::string>("target_lang", "pt-BR");
+    c.tts_bin            = t.get_or<std::string>("tts_bin", "piper");
+    c.tts_voice          = t.get_or<std::string>("tts_voice", "");
+    c.translate_cmd      = t.get_or<std::string>("translate_cmd", "argos-translate");
+    c.tempo_min          = t.get_or("tempo_min", 0.85);
+    c.tempo_max          = t.get_or("tempo_max", 1.30);
+    c.drift_threshold_ms = t.get_or("drift_threshold_ms", 300L);
+    c.ring_bytes         = t.get_or("ring_bytes", std::int64_t{50} << 20);
+    c.fifo_mode          = t.get_or("fifo_mode", false);
+
+    // sites = { {pattern=..., max_height=..., ...}, ... }
+    sol::optional<sol::table> sites = t["sites"];
+    if (sites) {
+        for (auto& [_, v] : sites->pairs()) {
+            sol::table st = v.as<sol::table>();
+            SitePolicy sp;
+            sp.pattern       = st.get_or<std::string>("pattern", "");
+            sp.max_height    = st.get_or("max_height", 0);
+            sp.sub_lang_pref = st.get_or<std::string>("sub_lang_pref", "");
+            sp.target_lang   = st.get_or<std::string>("target_lang", "");
+            sp.tts_voice     = st.get_or<std::string>("tts_voice", "");
+            if (!sp.pattern.empty()) c.sites.push_back(std::move(sp));
+        }
+    }
     return c;
 #else
     std::ifstream in(file);
@@ -69,6 +98,20 @@ Config Config::load(const std::filesystem::path& file) {
     ss << in.rdbuf();
     return parse_kv(ss.str());
 #endif
+}
+
+Config Config::effective_for(const std::string& url) const {
+    Config eff = *this;  // copia; campos do site sobrescrevem por cima
+    for (const auto& s : sites) {
+        if (s.pattern.empty() || url.find(s.pattern) == std::string::npos)
+            continue;
+        if (s.max_height > 0)        eff.max_height = s.max_height;
+        if (!s.sub_lang_pref.empty()) eff.sub_lang_pref = s.sub_lang_pref;
+        if (!s.target_lang.empty())   eff.target_lang = s.target_lang;
+        if (!s.tts_voice.empty())     eff.tts_voice = s.tts_voice;
+        break;  // primeira regra que casa vence (ordem do script importa)
+    }
+    return eff;
 }
 
 } // namespace saci

@@ -4,8 +4,13 @@
 
 #include "saci/config.hpp"
 #include "saci/orchestrator.hpp"
+#include "saci/proc.hpp"
 
 int main(int argc, char** argv) {
+    // Autoteste dos pipes bidirecionais (nao precisa de rede nem de TTS).
+    if (argc == 2 && std::string(argv[1]) == "--selftest")
+        return saci::selftest();
+
     if (argc < 2) {
         std::cerr << "uso: saci <url> [--config FILE] [--max-height N] "
                      "[--workdir DIR]\n";
