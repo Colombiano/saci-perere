@@ -29,7 +29,8 @@ return {
   -- Carrega o modelo 1x p/ N segmentos; sem ela, o fallback e ~4s/segmento.
   -- translate_bridge = "/caminho/argos-bridge",
   -- v0.3: backend "argos" (offline) ou "qwen" (LLM open source chines,
-  -- Apache 2.0, roda local e gratuito via Ollama):
+  -- Apache 2.0 exceto 3B/72B — verifique o model card; roda local e
+  -- gratuito via Ollama):
   --   translate_backend = "qwen",
   --   llm_cmd           = "ollama",
   --   llm_model         = "qwen2.5",   -- rode uma vez: ollama pull qwen2.5

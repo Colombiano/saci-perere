@@ -34,8 +34,8 @@ private:
 };
 
 // Tradutor via LLM local (v0.3): Qwen — modelo open source chines
-// (Alibaba, licenca Apache 2.0, gratuito, roda offline via Ollama ou
-// llama.cpp). Mesmo concept que ArgosEngine: troca-se em config, sem
+// (Alibaba, licenca Apache 2.0 exceto os tamanhos 3B/72B — verifique o
+// model card; gratuito, roda offline via Ollama ou llama.cpp). Mesmo concept que ArgosEngine: troca-se em config, sem
 // tocar no orchestrator. Sugestao: `ollama pull qwen2.5`.
 //
 // Batch e por segmento de proposito: LLM generativo nao garante contagem

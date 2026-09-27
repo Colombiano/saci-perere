@@ -204,7 +204,7 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 | 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp`, `reactor.hpp/cpp`, `muxer.cpp` | ✅ v0.4 (Reactor poll próprio — ver ADR-002; bomba virou `Task<int>`; bugs CLOEXEC e self-pipe) |
 | 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
 | 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |
-| 8 | Backend de tradução por LLM (Qwen, Apache 2.0) | `translate.hpp/cpp`, `orchestrator.cpp` | ✅ v0.3 (`QwenEngine` via Ollama; `translate_backend` em Lua) |
+| 8 | Backend de tradução por LLM (Qwen; Apache 2.0, exceto 3B/72B) | `translate.hpp/cpp`, `orchestrator.cpp` | ✅ v0.3 (`QwenEngine` via Ollama; `translate_backend` em Lua) |
 
 ---
 

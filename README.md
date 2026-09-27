@@ -15,7 +15,7 @@ redemoinho de pipes — e não deixa rastro no seu disco.
 ![mpv](https://img.shields.io/badge/mpv-player-333333)
 ![Piper](https://img.shields.io/badge/Piper-TTS-7c3aed)
 ![Argos Translate](https://img.shields.io/badge/Argos%20Translate-tradu%C3%A7%C3%A3o%20offline-8a6d1d)
-![Qwen](https://img.shields.io/badge/Qwen2.5-LLM%20%28Apache%202.0%29-d97706)
+![Qwen](https://img.shields.io/badge/Qwen2.5-LLM%20%28Apache%202.0%2C%20exc.%203B%2F72B%29-d97706)
 
 > ⚖️ **Aviso legal**: o Saci Pererê respeita os Termos de Serviço do YouTube e
 > a legislação de direitos autorais. Foi construído para **uso pessoal,
@@ -77,9 +77,10 @@ estimada com folga de 25%.
   (percentil 25 × folga), **detector de quedas por wavelet de Haar** e
   **FFT radix-2 (N=64)** para medir periodicidade da vazão — links rurais
   têm ciclos de congestionamento, e o pior momento volta.
-- **LLM open source chinesa**: `QwenEngine` — Qwen2.5 (Alibaba, Apache
-  2.0, gratuito, roda local via Ollama) como backend de tradução. Troca em
-  `translate_backend = "qwen"`, sem tocar no código.
+- **LLM open source chinesa**: `QwenEngine` — Qwen2.5 (Alibaba; Apache
+  2.0 na maioria dos tamanhos — 3B/72B têm licença própria, verifique o
+  model card; gratuito, roda local via Ollama) como backend de tradução.
+  Troca em `translate_backend = "qwen"`, sem tocar no código.
 - **Re-spawn do mux (modo fifo)**: queda prematura de rede → re-spawn com
   backoff, até `mux_retries`. A estimativa de banda é persistida em
   `bw_estimate.txt` para orientar a próxima sessão.
@@ -307,8 +308,9 @@ estimated bandwidth with a 25% margin.
   estimator (25th percentile × margin), **Haar-wavelet drop detector** and
   **radix-2 FFT (N=64)** for throughput periodicity — rural links have
   congestion cycles, and the worst moment always comes back.
-- **Chinese open-source LLM**: `QwenEngine` — Qwen2.5 (Alibaba, Apache
-  2.0, free, runs locally via Ollama) as the translation backend. Switch
+- **Chinese open-source LLM**: `QwenEngine` — Qwen2.5 (Alibaba; Apache
+  2.0 for most sizes — 3B/72B have their own license, check the model
+  card; free, runs locally via Ollama) as the translation backend. Switch
   with `translate_backend = "qwen"`, no code changes.
 - **Mux re-spawn (fifo mode)**: premature network failure → re-spawn with
   backoff, up to `mux_retries`. The bandwidth estimate is persisted to
@@ -497,9 +499,10 @@ banda estimada con un margen del 25%.
   (percentil 25 × margen), **detector de caídas por wavelet de Haar** y
   **FFT radix-2 (N=64)** para medir la periodicidad del caudal — los
   enlaces rurales tienen ciclos de congestión, y el peor momento vuelve.
-- **LLM open source china**: `QwenEngine` — Qwen2.5 (Alibaba, Apache
-  2.0, gratuito, corre local vía Ollama) como backend de traducción. Se
-  activa con `translate_backend = "qwen"`, sin tocar el código.
+- **LLM open source china**: `QwenEngine` — Qwen2.5 (Alibaba; Apache
+  2.0 en la mayoría de los tamaños — 3B/72B tienen licencia propia,
+  verifique la model card; gratuito, corre local vía Ollama) como backend
+  de traducción. Se activa con `translate_backend = "qwen"`, sin tocar el código.
 - **Re-spawn del mux (modo fifo)**: caída prematura de red → re-spawn con
   backoff, hasta `mux_retries`. La estimación de banda se guarda en
   `bw_estimate.txt` para orientar la próxima sesión.
@@ -679,8 +682,9 @@ YouTube 原始音轨**按设计被丢弃**:TTS 旁白取而代之,画质选择�
   ffmpeg 之间泵送视频并测量真实吞吐量。稳健估计器(第 25 百分位 ×
   余量)、**Haar 小波骤降检测器**,以及用于测量吞吐量周期性的
   **radix-2 FFT(N=64)** —— 农村链路存在拥塞周期,最糟的时刻总会回来。
-- **中国开源 LLM**:`QwenEngine` —— Qwen2.5(阿里巴巴,Apache 2.0,免费,
-  通过 Ollama 本地运行)作为翻译后端。在 `translate_backend = "qwen"`
+- **中国开源 LLM**:`QwenEngine` —— Qwen2.5(阿里巴巴;多数尺寸为 Apache
+  2.0 —— 3B/72B 为例外,采用自有许可,请查看 model card;免费,通过
+  Ollama 本地运行)作为翻译后端。在 `translate_backend = "qwen"`
   中切换,无需改代码。
 - **mux 重生(fifo 模式)**:网络过早掉线 → 带退避地重生,直到
   `mux_retries`。带宽估计持久化到 `bw_estimate.txt`,用于指导下一次会话。

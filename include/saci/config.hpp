@@ -48,7 +48,7 @@ struct Config {
     // (LLM open source chines via Ollama/llama.cpp — ver QwenEngine).
     std::string translate_backend = "argos";
     std::string llm_cmd = "ollama";      // executor do modelo
-    std::string llm_model = "qwen2.5";   // Apache 2.0, local, gratuito
+    std::string llm_model = "qwen2.5";   // Apache 2.0 (exceto 3B/72B), local, gratuito
 
     // v0.3: re-spawn do mux (modo fifo). 0 = falha rapida como antes.
     int mux_retries = 3;

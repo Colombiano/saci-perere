@@ -58,7 +58,8 @@ modelo 1x para N segmentos) e backend: "argos" (offline clássico) ou "qwen"
 (LLM open source chinês via Ollama/llama.cpp).
 .TP
 .B llm_cmd, llm_model
-executor e modelo do LLM (ex.: ollama + qwen2.5:3b, Apache 2.0, local).
+executor e modelo do LLM (ex.: ollama + qwen2.5; Apache 2.0, exceto
+3B/72B — verifique o model card, local).
 .TP
 .B mux_retries, source_retries, fifo_mode
 re-spawn do mux (sobrevive a quedas do player/rede), retries da fonte e

@@ -144,7 +144,7 @@ int Orchestrator::run(const std::string& url,
 
     std::vector<std::string> pt;
     if (eff.translate_backend == "qwen") {
-        // v0.3: LLM open source chines (Qwen/Apache 2.0) via Ollama local
+        // v0.3: LLM open source chines (Qwen; Apache 2.0 exceto 3B/72B) via Ollama local
         QwenEngine q(eff.llm_cmd, eff.llm_model, eff.source_lang, eff.target_lang);
         pt = translate_all(q, texts);
     } else {
