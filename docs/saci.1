@@ -1,0 +1,98 @@
+.TH SACI 1 "Setembro 2026" "saci-perere 0.6.3" "Comandos do usuário"
+.SH NOME
+saci \- dubla vídeos legendados em português do Brasil com voz sintetizada
+.SH SINOPSE
+.B saci
+.RI URL
+.RI [ OPÇÕES ]
+.br
+.B saci --selftest
+.SH DESCRIÇÃO
+.B saci
+(Saci Pererê) pega um vídeo com legendas em inglês \(em tipicamente aulas
+do YouTube \(em e o "dubla" em português: baixa a legenda, traduz para
+pt-BR, gera a narração com voz sintetizada (piper), ajusta cada fala na
+janela de tempo da legenda original (SyncFit) e toca o vídeo com o áudio
+novo, copiando o vídeo sem reencodar.
+.PP
+Concebido para banda estreita e disco pequeno: o vídeo original nunca é
+gravado em disco (zero-disco), a transferência retoma de onde parou
+(HTTP Range, resume fino) se a rede cair, e a qualidade do vídeo degringola
+degrau a degrau (escada) conforme a banda disponível.
+.PP
+Pipeline:
+FetchSubs \(-> Parse \(-> Translate \(-> TTS \(-> SyncFit \(-> Render \(-> StreamMux
+.SH OPÇÕES
+.TP
+.BI \-\-config " ARQUIVO"
+Script Lua com as políticas (voz, tradutor, retries, rede). Campos ausentes
+herdam os defaults; um
+.B \-\-config
+explícito vence qualquer config anterior.
+.TP
+.BI \-\-max-height " N"
+Degrau máximo de vídeo (ex.: 360, 720). Vence o max_height da config.
+.TP
+.BI \-\-workdir " DIR"
+Diretório de trabalho (srt, wavs, narracao.mp3). Padrão: /tmp/saci.
+.TP
+.B \-\-selftest
+Autoteste dos pipes bidirecionais. Sem rede, sem TTS.
+.SH CONFIGURAÇÃO
+O script Lua retorna uma tabela. Campos principais:
+.TP
+.B max_height, player, yt_dlp, yt_dlp_extra
+degrau de vídeo, player, binário do yt-dlp (versão recente) e extras de
+linha de comando dele (ex.: \-\-limit-rate, \-\-proxy).
+.TP
+.B sub_lang_pref, source_lang, target_lang
+regex de legendas aceitas, idioma de origem e idioma destino (hoje pt-BR;
+es/zh no roadmap).
+.TP
+.B tts_bin, tts_voice
+executável do piper e modelo de voz .onnx (pt-BR).
+.TP
+.B translate_cmd, translate_bridge, translate_backend
+tradutor (argos-translate), ponte de lote (tools/argos_bridge.py, carrega o
+modelo 1x para N segmentos) e backend: "argos" (offline clássico) ou "qwen"
+(LLM open source chinês via Ollama/llama.cpp).
+.TP
+.B llm_cmd, llm_model
+executor e modelo do LLM (ex.: ollama + qwen2.5:3b, Apache 2.0, local).
+.TP
+.B mux_retries, source_retries, fifo_mode
+re-spawn do mux (sobrevive a quedas do player/rede), retries da fonte e
+modo fifo (resume fino por Range). 0 em mux_retries = falha rápida.
+.TP
+.B ring_bytes, ladder
+tamanho do buffer de prefetch e escada de qualidade
+(Lua: ladder = { {height=360, video_kbps=700}, ... }).
+.TP
+.B sites, hooks_file
+políticas por-site (primeira regra que casa vence) e script Lua com
+on_stage(nome, ms) a cada troca de etapa.
+.TP
+.B tempo_min, tempo_max, drift_threshold_ms
+limites do ajuste de velocidade da fala (SyncFit) e tolerância de deriva.
+.SH ARQUIVOS
+.TP
+.I lua/default_config.lua
+config de exemplo versionada no repo (ex.: \-\-config lua/default_config.lua).
+.TP
+.I /tmp/saci
+workdir default: legenda .srt, utt/utt_N.wav, narracao.mp3, bw_estimate.txt.
+.SH EXEMPLOS
+saci "https://www.youtube.com/watch?v=XXXXXXXXXXX"
+.br
+saci URL \-\-config lua/default_config.lua \-\-max-height 720
+.br
+saci \-\-selftest
+.SH "CÓDIGOS DE SAÍDA"
+0 sucesso, 1 erro fatal, 64 uso inválido.
+.SH NOTAS
+Roadmap: espanhol e chinês como idiomas destino nas próximas versões
+(tradução via LLM open source chinês, ex.: Qwen).
+.SH VEJA TAMBÉM
+mpv(1), ffmpeg(1), yt-dlp(1), piper(1),
+.br
+https://github.com/Colombiano/saci-perere

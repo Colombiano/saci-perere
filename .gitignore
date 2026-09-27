@@ -1,4 +1,5 @@
 build/
+build-*/
 .venv-argos/
 fire_config.lua
 bw_estimate.txt

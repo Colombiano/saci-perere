@@ -1,7 +1,0 @@
-/home/guest/saci-perere/build-lua/CMakeFiles/saci.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/edit_cache.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/rebuild_cache.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/list_install_components.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/install.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/install/local.dir
-/home/guest/saci-perere/build-lua/CMakeFiles/install/strip.dir

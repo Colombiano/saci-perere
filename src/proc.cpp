@@ -200,9 +200,18 @@ int selftest() {
     }
 #ifdef SACI_WITH_LUA
     // 4) config via Lua: o script RETORNA a tabela que preenche Config.
-    //    (rode da raiz do repo: ./build/saci --selftest)
+    //    Localiza default_config.lua relativo ao executavel (build/ ou
+    //    build-lua/ sob a raiz do repo), com fallback ao cwd — assim o
+    //    selftest passa de qualquer diretorio (saci e' comando global).
     try {
-        Config c = Config::load("lua/default_config.lua");
+        namespace fs = std::filesystem;
+        fs::path script = "lua/default_config.lua";
+        std::error_code ec;
+        if (fs::path exe = fs::read_symlink("/proc/self/exe", ec); !ec) {
+            fs::path near_exe = exe.parent_path() / ".." / script;
+            if (fs::exists(near_exe, ec)) script = near_exe;
+        }
+        Config c = Config::load(script);
         check("config Lua (tabela retornada preenche Config)",
               c.target_lang == "pt-BR" && c.source_lang == "en" &&
               c.max_height == 360 && c.sites.empty());

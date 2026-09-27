@@ -5,9 +5,17 @@ mínimo e banda rural mínima.** Como o Saci do folclore: leve, veloz num
 redemoinho de pipes — e não deixa rastro no seu disco.
 
 ![Licença](https://img.shields.io/github/license/Colombiano/saci-perere)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.6.3-orange)
+![selftest](https://img.shields.io/badge/selftest-12%2F12-brightgreen)
+![plataforma](https://img.shields.io/badge/plataforma-Linux-lightgrey)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-blue)
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.6.0-orange)
-![selftest](https://img.shields.io/badge/selftest-11%2F11-brightgreen)
+![Lua](https://img.shields.io/badge/Lua-5.4-2C2D72?logo=lua&logoColor=white)
+![yt-dlp](https://img.shields.io/badge/yt--dlp-fonte%20de%20v%C3%ADdeo-red?logo=youtube&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-mux%2Frender-007808)
+![mpv](https://img.shields.io/badge/mpv-player-333333)
+![Piper](https://img.shields.io/badge/Piper-TTS-7c3aed)
+![Argos Translate](https://img.shields.io/badge/Argos%20Translate-tradu%C3%A7%C3%A3o%20offline-8a6d1d)
+![Qwen](https://img.shields.io/badge/Qwen2.5-LLM%20%28Apache%202.0%29-d97706)
 
 > ⚖️ **Aviso legal**: o Saci Pererê respeita os Termos de Serviço do YouTube e
 > a legislação de direitos autorais. Foi construído para **uso pessoal,
@@ -155,6 +163,23 @@ cmake --build build -j
 ./build/saci --selftest
 ```
 
+### Instalação (comando `saci` + man page)
+
+Com o build pronto, instala-se binário **e** man page de uma vez:
+
+```bash
+cmake --install build-lua --prefix ~/.local
+```
+
+Isso copia `saci` para `~/.local/bin` e `docs/saci.1` para
+`~/.local/share/man/man1` — em geral ambos já estão no `PATH` e no
+`MANPATH` das distros atuais. Depois:
+
+```bash
+saci --selftest   # roda de qualquer diretório
+man saci          # manual completo (opções, config Lua, arquivos)
+```
+
 ### Uso
 
 ```bash
@@ -204,10 +229,13 @@ saci-perere/
 ├── README.md               # este arquivo (PT/EN/ES/ZH)
 ├── EXPLICACAO.md           # design doc (pipeline, invariantes, roadmap)
 ├── docs/
-│   └── ONTOLOGY.md         # ontologia formal (classes, relações, Mermaid)
+│   ├── ONTOLOGY.md         # ontologia formal (classes, relações, Mermaid)
+│   └── saci.1              # man page (man saci; instalada pelo cmake --install)
 ├── lua/
 │   ├── default_config.lua  # políticas declarativas (retorna a tabela Config)
 │   └── hooks.lua           # exemplo de hooks on_stage (opcional)
+├── tools/
+│   └── argos_bridge.py     # ponte de lote do argos (modelo 1x p/ N segmentos)
 ├── vendor/sol/             # sol2 (MIT) vendored — build Lua sem instalar nada
 ├── include/saci/           # headers: concepts, coro, segment, ring_buffer,
 │                           # subtitle, translate, tts, sync, stream, muxer,
@@ -363,6 +391,24 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release   # without Lua
 cmake -B build-lua -DCMAKE_BUILD_TYPE=Release -DSACI_WITH_LUA=ON
 cmake --build build -j
 ./build/saci --selftest
+```
+
+### Installation (`saci` command + man page)
+
+With the build done, install both the binary **and** the man page in one
+go:
+
+```bash
+cmake --install build-lua --prefix ~/.local
+```
+
+This copies `saci` to `~/.local/bin` and `docs/saci.1` to
+`~/.local/share/man/man1` — on most current distros both are already in
+`PATH` and `MANPATH`. Then:
+
+```bash
+saci --selftest   # runs from any directory
+man saci          # full manual (options, Lua config, files)
 ```
 
 ### Usage
@@ -537,6 +583,23 @@ cmake --build build -j
 ./build/saci --selftest
 ```
 
+### Instalación (comando `saci` + man page)
+
+Con el build listo, se instalan el binario **y** la man page de una vez:
+
+```bash
+cmake --install build-lua --prefix ~/.local
+```
+
+Copia `saci` a `~/.local/bin` y `docs/saci.1` a
+`~/.local/share/man/man1` — en la mayoría de las distros actuales ambos
+ya están en el `PATH` y el `MANPATH`. Después:
+
+```bash
+saci --selftest   # corre desde cualquier directorio
+man saci          # manual completo (opciones, config Lua, archivos)
+```
+
 ### Uso
 
 ```bash
@@ -693,6 +756,23 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release   # 不带 Lua
 cmake -B build-lua -DCMAKE_BUILD_TYPE=Release -DSACI_WITH_LUA=ON
 cmake --build build -j
 ./build/saci --selftest
+```
+
+### 安装(`saci` 命令 + man page)
+
+构建完成后,可以一步安装二进制和 man page:
+
+```bash
+cmake --install build-lua --prefix ~/.local
+```
+
+它会将 `saci` 复制到 `~/.local/bin`、`docs/saci.1` 复制到
+`~/.local/share/man/man1` —— 大多数现代发行版的 `PATH` 和 `MANPATH`
+已包含这两个目录。然后:
+
+```bash
+saci --selftest   # 可在任意目录运行
+man saci          # 完整手册(选项、Lua 配置、文件)
 ```
 
 ### 使用

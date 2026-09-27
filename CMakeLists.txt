@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(saci VERSION 0.6.0 LANGUAGES CXX)
+project(saci VERSION 0.6.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -44,3 +44,4 @@ if(SACI_WITH_LUA)
 endif()
 
 install(TARGETS saci DESTINATION bin)
+install(FILES docs/saci.1 DESTINATION share/man/man1)
