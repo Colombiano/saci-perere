@@ -29,5 +29,7 @@ if [ -z "$LLAMA" ]; then
 fi
 
 prompt=$(cat)
-# -ngl 0: CPU (seguro em qualquer aparelho); suba se souber que tem GPU Vulkan.
-exec "$LLAMA" -m "$GGUF" -p "$prompt" --no-display -ngl 0
+# So' flags estaveis do llama-cli: -m (modelo), -p (prompt one-shot; o
+# processo imprime a resposta e sai), -ngl 0 (CPU). Sem --no-display:
+# o nome dessa flag varia entre versoes e quebraria o exec.
+exec "$LLAMA" -m "$GGUF" -p "$prompt" -ngl 0

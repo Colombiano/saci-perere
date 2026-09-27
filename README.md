@@ -259,6 +259,7 @@ saci-perere/
 ├── tools/
 │   ├── argos_bridge.py      # ponte de lote do argos (modelo 1x p/ N segmentos)
 │   ├── termux_setup.sh      # instalação no Android (Termux, sem root)
+│   ├── termux_config_qwen.sh # ativa o backend Qwen no config (Termux)
 │   ├── termux_tts_espeak.sh # TTS no Termux: interface do piper sobre espeak-ng
 │   └── termux_ollama_shim.sh # "ollama run" sobre llama.cpp (Termux)
 ├── vendor/sol/             # sol2 (MIT) vendored — build Lua sem instalar nada
