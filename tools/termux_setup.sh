@@ -79,7 +79,9 @@ return {
   player           = "mpv",
   yt_dlp           = "$YT_DLP",
 
-  sub_lang_pref    = "en",
+  -- regex ancorada: pega en/en-GB/en-US SEM as traducoes automaticas
+  -- (pt-en-GB etc.) — a regex solta 'en.*' tomava HTTP 429 do YouTube.
+  sub_lang_pref    = "^en([-.].*)?$",
   source_lang      = "en",
   target_lang      = "pt-BR",
 

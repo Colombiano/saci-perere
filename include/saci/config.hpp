@@ -31,7 +31,7 @@ struct Config {
     std::vector<std::string> yt_dlp_extra;
 
     // legenda / traducao
-    std::string sub_lang_pref = "en";   // regex de idiomas aceitos
+    std::string sub_lang_pref = "^en([-.].*)?$";   // regex: en/en-GB/en-US, sem traducoes auto
     std::string source_lang = "en";       // lingua de origem da legenda
     std::string target_lang = "pt-BR";    // proximas versoes: es, zh, ...
 

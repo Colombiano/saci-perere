@@ -19,9 +19,17 @@ def main() -> int:
         print("uso: argos_bridge.py <from> <to>", file=sys.stderr)
         return 64
     from_lang, to_lang = sys.argv[1], sys.argv[2]
-    texts = [line.rstrip("\n") for line in sys.stdin if line.strip()]
+    # Contrato 1:1 com o saci: UMA linha de saida por linha de entrada, na
+    # mesma ordem — inclusive para linhas vazias. O saci compara a CONTAGEM
+    # e cai no fallback lento (~4 s/segmento) se nao bater. Tambem nunca
+    # deixar a traducao vazar '\n' (uma linha a mais ja quebra o contrato).
+    texts = [line.rstrip("\n") for line in sys.stdin]
     for text in texts:
-        print(translate.translate(text, from_lang, to_lang))
+        if not text.strip():
+            print()
+            continue
+        out = translate.translate(text, from_lang, to_lang)
+        print(" ".join(out.splitlines()))
     return 0
 
 

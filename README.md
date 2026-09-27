@@ -132,8 +132,9 @@ estimada com folga de 25%.
   stanza). A ponte carrega o modelo **uma vez** para todos os segmentos.
   Ative com `translate_bridge = "/caminho/do/wrapper"`.
 - **`yt_dlp` configurável** (a 2025.04 quebra com SABR do YouTube).
-- **`--sub-format srt`** e `sub_lang_pref = "en"` (a regex `en.*` puxava
-  variantes demais e tomava HTTP 429).
+- **`--sub-format srt`** e `sub_lang_pref` ancorada (`^en([-.].*)?$`):
+  pega `en`/`en-GB`/`en-US` sem puxar as dezenas de traduções automáticas
+  (`pt-en-GB` etc.) — a regex solta `en.*` tomava HTTP 429.
 - **Normalização de idioma**: `pt-BR` vira `pt` para o argos (o modelo
   en→pt já é o português brasileiro).
 - **Bug de lifetime de coroutine**: o `Task` da bomba morria no escopo
@@ -389,8 +390,10 @@ estimated bandwidth with a 25% margin.
   loads the model **once** for all segments. Enable with
   `translate_bridge = "/path/to/wrapper"`.
 - **Configurable `yt_dlp`** (2025.04 breaks with YouTube's SABR).
-- **`--sub-format srt`** and `sub_lang_pref = "en"` (the `en.*` regex
-  pulled too many variants and hit HTTP 429).
+- **`--sub-format srt`** and an anchored `sub_lang_pref`
+  (`^en([-.].*)?$`): matches `en`/`en-GB`/`en-US` without pulling the
+  dozens of auto-translated variants (`pt-en-GB` etc.) — the loose `en.*`
+  regex was hitting HTTP 429.
 - **Language normalization**: `pt-BR` becomes `pt` for argos (the en→pt
   model is already Brazilian Portuguese).
 - **Coroutine lifetime bug**: the pump's `Task` died in scope before
@@ -601,8 +604,9 @@ banda estimada con un margen del 25%.
   El puente carga el modelo **una vez** para todos los segmentos. Actívalo
   con `translate_bridge = "/ruta/al/wrapper"`.
 - **`yt_dlp` configurable** (2025.04 se rompe con SABR de YouTube).
-- **`--sub-format srt`** y `sub_lang_pref = "en"` (la regex `en.*` traía
-  demasiadas variantes y recibía HTTP 429).
+- **`--sub-format srt`** y `sub_lang_pref` anclada (`^en([-.].*)?$`):
+  toma `en`/`en-GB`/`en-US` sin traer las decenas de traducciones
+  automáticas (`pt-en-GB` etc.) — la regex suelta `en.*` recibía HTTP 429.
 - **Normalización de idioma**: `pt-BR` se vuelve `pt` para argos (el
   modelo en→pt ya es portugués brasileño).
 - **Bug de lifetime de coroutine**: el `Task` de la bomba moría en el
@@ -799,8 +803,9 @@ YouTube 原始音轨**按设计被丢弃**:TTS 旁白取而代之,画质选择�
   重载 stanza)。桥接脚本**一次加载模型**处理所有段落。用
   `translate_bridge = "/path/to/wrapper"` 启用。
 - **`yt_dlp` 可配置**(2025.04 在 YouTube SABR 下会挂)。
-- **`--sub-format srt`** 与 `sub_lang_pref = "en"`(正则 `en.*` 会拉
-  太多变体,触发 HTTP 429)。
+- **`--sub-format srt`** 与锚定的 `sub_lang_pref`(`^en([-.].*)?$`):
+  匹配 `en`/`en-GB`/`en-US`,但不会拉取数十条自动翻译轨道
+  (`pt-en-GB` 等)——松散的正则 `en.*` 会触发 HTTP 429。
 - **语言归一化**:`pt-BR` 对 argos 自动变 `pt`(en→pt 模型本来就是巴
   西葡萄牙语)。
 - **协程生命周期 bug**:泵的 `Task` 在 `done.wait()` 之前随作用域销

@@ -12,7 +12,9 @@ return {
                                    -- (2025.04 quebra com SABR; use 2025.09+)
 
   -- legenda / traducao
-  sub_lang_pref    = "en",       -- regex de idiomas aceitos na busca
+  -- regex ancorada: pega en/en-GB/en-US SEM as traducoes automaticas
+  -- (pt-en-GB etc.) — a regex solta 'en.*' tomava HTTP 429 do YouTube.
+  sub_lang_pref    = "^en([-.].*)?$",       -- regex de idiomas aceitos na busca
   source_lang      = "en",         -- lingua da legenda de origem
   target_lang      = "pt-BR",      -- destino da narracao.
                                    -- ROADMAP DE IDIOMAS: nas proximas

@@ -114,18 +114,53 @@ int Orchestrator::run(const std::string& url,
 
     // 1. Legendas ------------------------------------------------------
     enter(Stage::FetchSubs);
+    // O workdir persiste entre execucoes (ex.: /tmp/saci no desktop): um
+    // .srt velho de OUTRO video ficaria candidato ao "primeiro .srt" la
+    // embaixo. Limpa os antigos (sao KBs e sempre re-baixaveis).
+    for (auto& e : directory_iterator(workdir))
+        if (e.path().extension() == ".srt") std::filesystem::remove(e.path());
+
+    auto has_srt = [&] {
+        for (auto& e : directory_iterator(workdir))
+            if (e.path().extension() == ".srt") return true;
+        return false;
+    };
+    // run_capture: stdout vai pro saci (vazio aqui), STDERR HERDADO — as
+    // mensagens do yt-dlp ("no subtitles for the requested languages" etc.)
+    // aparecem ao vivo no terminal em vez de sumirem no /dev/null.
+    // Preferencia: legendas MANUAIS; so se nao houver, as automaticas
+    // (evita baixar as duas e pegar a errada — auto vem com codigo duplo).
     std::vector<std::string> dl = {eff.yt_dlp,
-        "--write-subs", "--write-auto-subs",
+        "--write-subs",
         "--sub-langs", eff.sub_lang_pref,
         "--sub-format", "srt",
         "--skip-download", "-P", workdir.string(), url};
-    int code = run_quiet(dl);
-    if (code != 0) { enter(Stage::Error); return code; }
+    int code = run_capture(dl).first;
+    if (!has_srt()) {
+        dl = {eff.yt_dlp,
+            "--write-auto-subs",
+            "--sub-langs", eff.sub_lang_pref,
+            "--sub-format", "srt",
+            "--skip-download", "-P", workdir.string(), url};
+        code = run_capture(dl).first;
+    }
+    if (code != 0) {
+        enter(Stage::Error);
+        std::cerr << "[saci] FetchSubs: yt-dlp saiu com codigo " << code
+                  << " (veja a mensagem dele acima)\n";
+        return code;
+    }
 
     std::optional<path> srt;
     for (auto& e : directory_iterator(workdir))
         if (e.path().extension() == ".srt") { srt = e.path(); break; }
-    if (!srt) { enter(Stage::Error); return 2; }
+    if (!srt) {
+        enter(Stage::Error);
+        std::cerr << "[saci] FetchSubs: nenhum .srt para sub_lang_pref=\""
+                  << eff.sub_lang_pref << "\". O video tem legenda nesse"
+                  << " idioma? (regex ancorada: ^en([-.].*)?$ pega en/en-GB/en-US)\n";
+        return 2;
+    }
 
     // 2. Parse ---------------------------------------------------------
     enter(Stage::Parse);
@@ -137,7 +172,10 @@ int Orchestrator::run(const std::string& url,
 
     // 3. Traducao (lote, uma unica invocacao quando o CLI colabora) -----
     enter(Stage::Translate);
-    ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd);
+    // v0.7.1: passa translate_bridge (a ponte de lote python carrega o
+    // modelo 1x p/ N segmentos; sem ela, caia-se no fallback de ~4s/seg).
+    ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd,
+                   eff.translate_bridge);
     std::vector<std::string> texts;
     texts.reserve(segments.size());
     for (auto& s : segments) texts.push_back(s.text);
