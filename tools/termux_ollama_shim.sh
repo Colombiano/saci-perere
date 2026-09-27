@@ -5,23 +5,27 @@
 # a ~20 s/traducao; com o server quente na RAM, cada chamada e' um POST
 # local de poucos segundos. O server fica de pe entre rodadas do saci.
 #
+# Por que retry: o server pode travar, ser morto pelo Android (OOM) ou o
+# aparelho pode dormir no meio do POST (curl exit 28 = timeout). O shim
+# ressobe o server e repete o prompt (ate 3x) em vez de derrubar o saci.
+#
 # No config Lua:
 #   translate_backend = "qwen",
 #   llm_cmd           = "<repo>/tools/termux_ollama_shim.sh",
 #   llm_model         = "qualquer"      (ignorado; o modelo e' o arquivo GGUF)
 #
-# Modelo: $SACI_GGUF (default ~/.local/share/saci/qwen.gguf). Log do server:
-# ~/.local/share/saci/llama-server.log
+# Modelo: $SACI_GGUF (default ~/.local/share/saci/qwen.gguf).
+# Logs: server em ~/.local/share/saci/llama-server.log, shim em shim-debug.log.
+# Dica rural: rode 'termux-wake-lock' antes de sessoes longas (tela apagada
+# congela o Termux e estoura os timeouts).
 set -euo pipefail
 
-# Diagnóstico (barato, decisivo): se ~/.local/share/saci/shim-debug.log NÃO
-# ganhar entrada numa chamada do saci, o exec falhou antes do shim nascer.
 DBG="$HOME/.local/share/saci/shim-debug.log"
 {
     echo "=== $(date) | argv: $*"
     echo "    PATH=$PATH"
-    echo "    PWD=$PWD"
 } >> "$DBG" 2>/dev/null || true
+log() { echo "    $*" >> "$DBG" 2>/dev/null || true; }
 
 [ "${1:-}" = "run" ] || { echo "shim: só entendo 'ollama run <modelo>'" >&2; exit 64; }
 
@@ -39,21 +43,18 @@ if ! command -v llama-server > /dev/null 2>&1; then
     exit 69
 fi
 
-# (Re)sobe o server se não estiver respondendo (ex.: sessão anterior caiu).
-if ! curl -s -o /dev/null --max-time 5 "$BASE/health"; then
-    # mata zumbi da porta (bracket trick: padrão não casa com esta própria linha)
+healthy() { curl -s -o /dev/null --max-time 5 "$BASE/health"; }
+
+boot_server() {
     pkill -f "llama-serve[r].*--port $PORT" 2>/dev/null || true
     nohup llama-server -m "$GGUF" --port "$PORT" -ngl 0 -c 2048 \
         > "$LOG" 2>&1 &
-    for _ in $(seq 1 180); do
-        curl -s -o /dev/null --max-time 2 "$BASE/health" && break
+    for _ in $(seq 1 240); do
+        healthy && return 0
         sleep 1
     done
-    if ! curl -s -o /dev/null --max-time 2 "$BASE/health"; then
-        echo "shim: llama-server não respondeu em $BASE (log: $LOG)" >&2
-        exit 69
-    fi
-fi
+    return 1
+}
 
 prompt=$(cat)
 
@@ -68,27 +69,38 @@ print(json.dumps({
     "temperature": 0.1,
 }))' "$prompt")
 
-# Status HTTP + corpo separados: se o server devolver {"error": ...}
-# (payload inválido, endpoint ausente, modelo carregando), mostramos o
-# motivo real em vez de um KeyError críptico no parser.
-resp=$(curl -s --max-time 300 -w $'\n%{http_code}' \
-    "$BASE/v1/chat/completions" \
-    -H 'Content-Type: application/json' \
-    -d "$payload")
-http=${resp##*$'\n'}
-body=${resp%$'\n'*}
-{
-    echo "    http=$http"
-    echo "    body=$(printf '%s' "$body" | head -c 200)"
-} >> "$DBG" 2>/dev/null || true
-if [ "$http" != "200" ]; then
-    echo "shim: HTTP $http — $(printf '%s' "$body" | head -c 400)" >&2
-    exit 1
-fi
-printf '%s' "$body" | python3 -c '
+for attempt in 1 2 3; do
+    if ! healthy; then
+        echo "shim: server fora do ar (tentativa $attempt) — resubindo…" >&2
+        log "server morto; ressubo (tentativa $attempt)"
+        boot_server || { echo "shim: llama-server não subiu (log: $LOG)" >&2; exit 69; }
+    fi
+    rc=0
+    resp=$(curl -s --max-time 240 -w $'\n%{http_code}' \
+        "$BASE/v1/chat/completions" \
+        -H 'Content-Type: application/json' \
+        -d "$payload") || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        log "curl rc=$rc (tentativa $attempt)"
+        echo "shim: curl falhou com $rc (tentativa $attempt)" >&2
+        continue
+    fi
+    http=${resp##*$'\n'}
+    body=${resp%$'\n'*}
+    log "http=$http (tentativa $attempt)"
+    if [ "$http" != "200" ]; then
+        echo "shim: HTTP $http — $(printf '%s' "$body" | head -c 300)" >&2
+        continue
+    fi
+    if printf '%s' "$body" | python3 -c '
 import json, sys
 data = json.load(sys.stdin)
 if "choices" not in data:
-    print("shim: resposta sem choices: " + json.dumps(data)[:400], file=sys.stderr)
+    print("shim: resposta sem choices: " + json.dumps(data)[:300], file=sys.stderr)
     sys.exit(1)
-print(data["choices"][0]["message"]["content"])'
+print(data["choices"][0]["message"]["content"])'; then
+        exit 0
+    fi
+done
+echo "shim: esgotadas as 3 tentativas (log do server: $LOG)" >&2
+exit 1
