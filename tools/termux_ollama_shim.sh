@@ -53,15 +53,29 @@ prompt=$(cat)
 payload=$(python3 -c '
 import json, sys
 print(json.dumps({
+    "model": "qwen2.5",
     "messages": [{"role": "user", "content": sys.argv[1]}],
     "max_tokens": 256,
     "temperature": 0.1,
 }))' "$prompt")
 
-curl -s --max-time 300 "$BASE/v1/chat/completions" \
+# Status HTTP + corpo separados: se o server devolver {"error": ...}
+# (payload inválido, endpoint ausente, modelo carregando), mostramos o
+# motivo real em vez de um KeyError críptico no parser.
+resp=$(curl -s --max-time 300 -w $'\n%{http_code}' \
+    "$BASE/v1/chat/completions" \
     -H 'Content-Type: application/json' \
-    -d "$payload" \
-| python3 -c '
+    -d "$payload")
+http=${resp##*$'\n'}
+body=${resp%$'\n'*}
+if [ "$http" != "200" ]; then
+    echo "shim: HTTP $http — $(printf '%s' "$body" | head -c 400)" >&2
+    exit 1
+fi
+printf '%s' "$body" | python3 -c '
 import json, sys
 data = json.load(sys.stdin)
+if "choices" not in data:
+    print("shim: resposta sem choices: " + json.dumps(data)[:400], file=sys.stderr)
+    sys.exit(1)
 print(data["choices"][0]["message"]["content"])'
