@@ -93,6 +93,10 @@ stateDiagram-v2
 | `max_height` | `QualityLadder` | teto de bitrate (rede rural) |
 | `fifo_mode` | `RingBuffer` | sobrevivência a quedas |
 | `ring_bytes` | `RingBuffer` | prefetch máximo |
+| `yt_dlp` | `VideoSource` | binário do yt-dlp (versão recente p/ SABR) |
+| `yt_dlp_extra` | `VideoSource` | args extras (ex.: `--limit-rate` p/ link rural) |
+| `translate_bridge` | `ArgosEngine` | ponte de lote (`tools/argos_bridge.py`, 1 carga p/ N segmentos) |
+| `source_lang`/`target_lang` | `Translation` | par de idiomas (roadmap: `es`, `zh`) |
 
 Scripts por-site: retornar tabela com essas chaves sobrescreve o `Config`
 global — política local sem recompilar.

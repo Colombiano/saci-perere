@@ -26,6 +26,9 @@ struct Config {
     int max_height = 360;
     std::string player = "mpv";
     std::string yt_dlp = "yt-dlp";   // binario do yt-dlp (versao recente!)
+    // extras passados ao yt-dlp (ex.: --limit-rate p/ link rural, --proxy).
+    // Lua: yt_dlp_extra = { "--limit-rate", "300K" }
+    std::vector<std::string> yt_dlp_extra;
 
     // legenda / traducao
     std::string sub_lang_pref = "en";   // regex de idiomas aceitos

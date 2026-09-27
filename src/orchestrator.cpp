@@ -201,12 +201,15 @@ int Orchestrator::run(const std::string& url,
 
     // designated initializers (C++20): sessao declarada de uma vez
     MuxSession sess{.source_argv = {eff.yt_dlp, "-f",
-                                    yt_dlp_format_selector(cap), url},
+                                    yt_dlp_format_selector(cap)},
                     .narration_path = narration.string(),
                     .player_argv = {eff.player, "--cache=yes", "-"},
                     // sem --really-quiet: ffmpeg/mpv visiveis p/ diagnostico
                     .direct_url = "",
                     .source_retries = 0};
+    sess.source_argv.insert(sess.source_argv.end(),
+                            eff.yt_dlp_extra.begin(), eff.yt_dlp_extra.end());
+    sess.source_argv.push_back(url);
 
     // v0.5: URL direta (yt-dlp -g) alimenta o resume fino por Range.
     // Só resolve se for usar (fifo + retries); senão, re-spawn completo.

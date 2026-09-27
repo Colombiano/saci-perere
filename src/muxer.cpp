@@ -209,6 +209,7 @@ int MuxHandle::wait_all() {
                 // padrao do curl em requisicoes Range (teste de fogo v0.6).
                 argv = {"curl", "-sS", "-L", "--fail",
                         "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                        "--write-out", "%{stderr}\nHTTP %{http_code}\n",
                         "--range", std::to_string(off) + "-", direct_url_};
             }
             const pid_t pid = ::fork();

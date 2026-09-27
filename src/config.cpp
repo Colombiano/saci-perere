@@ -72,6 +72,13 @@ Config Config::load(const std::filesystem::path& file) {
     c.max_height         = t.get_or("max_height", 360);
     c.player             = t.get_or<std::string>("player", "mpv");
     c.yt_dlp             = t.get_or<std::string>("yt_dlp", "yt-dlp");
+
+    // yt_dlp_extra = { "--limit-rate", "300K", ... }
+    sol::optional<sol::table> extra = t["yt_dlp_extra"];
+    if (extra) {
+        for (auto& [_, v] : extra->pairs())
+            c.yt_dlp_extra.push_back(v.as<std::string>());
+    }
     c.sub_lang_pref      = t.get_or<std::string>("sub_lang_pref", "en.*");
     c.source_lang        = t.get_or<std::string>("source_lang", "en");
     c.target_lang        = t.get_or<std::string>("target_lang", "pt-BR");
