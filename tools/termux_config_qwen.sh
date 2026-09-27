@@ -26,11 +26,26 @@ sed -i \
     -e "s|llm_cmd *= *\"[^\"]*\"|llm_cmd = \"$SHIM\"|" \
     "$CFG"
 
-grep -q 'translate_backend *= *"qwen"' "$CFG" || {
-    echo "termux_config_qwen: falha ao atualizar $CFG (backup em $CFG.bak)" >&2
+# Templates antigos do termux_setup.sh NAO tinham linha llm_cmd: o sed de
+# substituicao virava no-op silencioso e o saci caia no default "ollama"
+# (exit 127 no execvp). Se a linha nao existe, INSERE antes do '}' final.
+if ! grep -q 'llm_cmd' "$CFG"; then
+    sed -i "\$i\\  llm_cmd = \"$SHIM\"," "$CFG"
+fi
+# mesmo tratamento para translate_backend ausente (improvavel, mas barato)
+if ! grep -q 'translate_backend' "$CFG"; then
+    sed -i "\$i\\  translate_backend = \"qwen\"," "$CFG"
+fi
+
+# Verifica AS DUAS substituicoes NO ARQUIVO (o echo acima nao prova nada).
+# Caminho com caracteres regex exige grep -F.
+if ! grep -q 'translate_backend *= *"qwen"' "$CFG" \
+   || ! grep -qF "llm_cmd = \"$SHIM\"" "$CFG"; then
+    echo "termux_config_qwen: FALHA ao atualizar $CFG — conteúdo atual:" >&2
+    grep -nE 'translate_backend|llm_cmd|llm_model' "$CFG" >&2
     exit 1
-}
+fi
 echo "OK: backend qwen ativo em $CFG"
-echo "     llm_cmd = $SHIM"
+grep -nE 'translate_backend|llm_cmd' "$CFG"
 echo "     GGUF    = $GGUF"
 echo "  (backup do config original em $CFG.bak)"

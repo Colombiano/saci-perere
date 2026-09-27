@@ -92,6 +92,8 @@ return {
 
   translate_cmd    = "${TRANSLATE_CMD:-argos-translate}",
   translate_backend = "argos",
+  llm_cmd          = "ollama",
+  llm_model        = "qwen2.5",
 
   ring_bytes       = 50 * 1024 * 1024,
   fifo_mode        = true,     -- resume fino por Range: bom em rede móvel
