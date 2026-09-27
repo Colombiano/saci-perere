@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Wrapper espeak-ng com a interface de linha de comando do piper, para o
+# saci ter TTS no Termux sem o binário do piper (o release é glibc-only).
+#
+# Interface emulada (ver src/tts.cpp):
+#   piper --model <voz.onnx> --output_file <arq.wav> --stdin   (texto no stdin)
+# --model/--stdin são aceitos e ignorados; o sotaque vem do espeak (-v pt-br).
+set -u
+
+out=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --output_file) out="${2:-}"; shift 2 ;;
+        *) shift ;;
+    esac
+done
+
+if [ -z "$out" ]; then
+    echo "termux_tts_espeak: falta --output_file" >&2
+    exit 64
+fi
+
+text=$(cat)
+# -s 170: ritmo de fala; o SyncFit ajusta velocidade/posição depois (atempo).
+exec espeak-ng -v pt-br -s 170 -w "$out" -- "$text"

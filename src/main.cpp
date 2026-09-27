@@ -26,7 +26,11 @@ int main(int argc, char** argv) {
     const std::string url = argv[1];
 
     saci::Config cfg;
-    std::filesystem::path workdir = "/tmp/saci";
+    // v0.6.3: workdir default respeita $TMPDIR (no Android/Termux /tmp nao
+    // existe; temp padrao e' $PREFIX/tmp). Desktop: TMPDIR vazio -> /tmp.
+    const char* tmp = std::getenv("TMPDIR");
+    std::filesystem::path workdir =
+        std::filesystem::path(tmp && *tmp ? tmp : "/tmp") / "saci";
 
     for (int i = 2; i < argc; ++i) {
         std::string a = argv[i];

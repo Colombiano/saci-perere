@@ -181,6 +181,27 @@ saci --selftest   # roda de qualquer diretório
 man saci          # manual completo (opções, config Lua, arquivos)
 ```
 
+### Android (Termux, sem root)
+
+O caminho mais fácil para o celular é o
+[Termux](https://github.com/termux/termux-app) (APK do **F-Droid** — a
+versão da Play Store está abandonada). Dentro dele:
+
+```bash
+pkg install git
+git clone https://github.com/Colombiano/saci-perere.git
+cd saci-perere
+bash tools/termux_setup.sh
+```
+
+O script instala as dependências (clang, cmake, ffmpeg, mpv, curl, yt-dlp,
+lua54, espeak-ng), compila com Lua, instala `saci` + man page em `$PREFIX`
+e gera `~/.config/saci/config.lua` com TTS via espeak-ng
+(`tools/termux_tts_espeak.sh` emula a interface do piper — o binário do
+piper é glibc-only). Tradução: Argos se o pip permitir; se não, o script
+orienta o plano B Qwen via llama.cpp (`tools/termux_ollama_shim.sh`). O
+workdir respeita `$TMPDIR` — no Android, `/tmp` não existe.
+
 ### Uso
 
 ```bash
@@ -236,7 +257,10 @@ saci-perere/
 │   ├── default_config.lua  # políticas declarativas (retorna a tabela Config)
 │   └── hooks.lua           # exemplo de hooks on_stage (opcional)
 ├── tools/
-│   └── argos_bridge.py     # ponte de lote do argos (modelo 1x p/ N segmentos)
+│   ├── argos_bridge.py      # ponte de lote do argos (modelo 1x p/ N segmentos)
+│   ├── termux_setup.sh      # instalação no Android (Termux, sem root)
+│   ├── termux_tts_espeak.sh # TTS no Termux: interface do piper sobre espeak-ng
+│   └── termux_ollama_shim.sh # "ollama run" sobre llama.cpp (Termux)
 ├── vendor/sol/             # sol2 (MIT) vendored — build Lua sem instalar nada
 ├── include/saci/           # headers: concepts, coro, segment, ring_buffer,
 │                           # subtitle, translate, tts, sync, stream, muxer,
@@ -412,6 +436,27 @@ This copies `saci` to `~/.local/bin` and `docs/saci.1` to
 saci --selftest   # runs from any directory
 man saci          # full manual (options, Lua config, files)
 ```
+
+### Android (Termux, no root)
+
+The easiest path on a phone is
+[Termux](https://github.com/termux/termux-app) (APK from **F-Droid** — the
+Play Store build is abandoned). Inside it:
+
+```bash
+pkg install git
+git clone https://github.com/Colombiano/saci-perere.git
+cd saci-perere
+bash tools/termux_setup.sh
+```
+
+The script installs the dependencies (clang, cmake, ffmpeg, mpv, curl,
+yt-dlp, lua54, espeak-ng), builds with Lua, installs `saci` + man page
+into `$PREFIX` and writes `~/.config/saci/config.lua` with TTS via
+espeak-ng (`tools/termux_tts_espeak.sh` emulates piper's CLI — the piper
+binary is glibc-only). Translation: Argos if pip cooperates; otherwise the
+script prints the Qwen-via-llama.cpp plan B (`tools/termux_ollama_shim.sh`).
+The workdir honors `$TMPDIR` — `/tmp` doesn't exist on Android.
 
 ### Usage
 
@@ -603,6 +648,27 @@ saci --selftest   # corre desde cualquier directorio
 man saci          # manual completo (opciones, config Lua, archivos)
 ```
 
+### Android (Termux, sin root)
+
+El camino más fácil en el móvil es
+[Termux](https://github.com/termux/termux-app) (APK de **F-Droid** — la
+versión de Play Store está abandonada). Dentro:
+
+```bash
+pkg install git
+git clone https://github.com/Colombiano/saci-perere.git
+cd saci-perere
+bash tools/termux_setup.sh
+```
+
+El script instala las dependencias (clang, cmake, ffmpeg, mpv, curl,
+yt-dlp, lua54, espeak-ng), compila con Lua, instala `saci` + man page en
+`$PREFIX` y genera `~/.config/saci/config.lua` con TTS vía espeak-ng
+(`tools/termux_tts_espeak.sh` emula la CLI de piper — el binario de piper
+es glibc-only). Traducción: Argos si pip coopera; si no, el script imprime
+el plan B Qwen vía llama.cpp (`tools/termux_ollama_shim.sh`). El workdir
+respeta `$TMPDIR` — en Android no existe `/tmp`.
+
 ### Uso
 
 ```bash
@@ -778,6 +844,27 @@ cmake --install build-lua --prefix ~/.local
 saci --selftest   # 可在任意目录运行
 man saci          # 完整手册(选项、Lua 配置、文件)
 ```
+
+### Android(Termux,免 root)
+
+手机上最简单的路线是
+[Termux](https://github.com/termux/termux-app)(APK 请用 **F-Droid** 版
+—— Play 商店版已停止维护)。在 Termux 里:
+
+```bash
+pkg install git
+git clone https://github.com/Colombiano/saci-perere.git
+cd saci-perere
+bash tools/termux_setup.sh
+```
+
+脚本会安装依赖(clang、cmake、ffmpeg、mpv、curl、yt-dlp、lua54、
+espeak-ng),带 Lua 编译,把 `saci` + man page 装进 `$PREFIX`,并生成
+`~/.config/saci/config.lua`(TTS 走 espeak-ng ——
+`tools/termux_tts_espeak.sh` 模拟 piper 的命令行接口,因为 piper 官方
+二进制只支持 glibc)。翻译:pip 装得上 Argos 就用 Argos;装不上时
+脚本会打印 Qwen + llama.cpp 的备选方案(`tools/termux_ollama_shim.sh`)。
+workdir 遵循 `$TMPDIR` —— Android 上没有 `/tmp`。
 
 ### 使用
 
