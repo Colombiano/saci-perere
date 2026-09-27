@@ -28,7 +28,8 @@ pkg update -y
 # 'espeak' é o nome do PACOTE no Termux (o binário instalado é espeak-ng).
 # Blocos separados de propósito: o apt aborta TODA a linha se um nome não
 # existe — assim um erro não derruba as demais dependências.
-if ! pkg install -y clang cmake make git ffmpeg mpv curl python python-pip lua54; then
+if ! pkg install -y clang cmake make git ffmpeg mpv curl python python-pip \
+    lua54 pkg-config; then
     cat >&2 <<'FIM'
 saci-termux: falha ao instalar pacotes essenciais. Se vários pacotes vieram
 com "Unable to locate", seu Termux é provavelmente o da PLAY STORE (repo
@@ -49,6 +50,8 @@ pip install --upgrade yt-dlp
 YT_DLP="$(command -v yt-dlp)"
 
 echo "== 3/5 build do saci (com Lua) =="
+# tira o CMakeCache de uma tentativa anterior falha (reconfigura limpo)
+rm -f build-termux/CMakeCache.txt
 cmake -B build-termux -DCMAKE_BUILD_TYPE=Release -DSACI_WITH_LUA=ON
 cmake --build build-termux -j"$(nproc)"
 ./build-termux/saci --selftest
