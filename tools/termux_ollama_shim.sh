@@ -1,35 +1,67 @@
-#!/usr/bin/env bash
-# Shim de 'ollama run' sobre llama-cli — backend Qwen do saci no Termux.
+#!/data/data/com.termux/files/usr/bin/bash
+# Shim de 'ollama run' sobre um llama-server PERSISTENTE (Termux).
+#
+# Por que server: carregar o GGUF de ~470 MB do disco a cada segmento sai
+# a ~20 s/traducao; com o server quente na RAM, cada chamada e' um POST
+# local de poucos segundos. O server fica de pe entre rodadas do saci.
 #
 # No config Lua:
 #   translate_backend = "qwen",
 #   llm_cmd           = "<repo>/tools/termux_ollama_shim.sh",
-#   llm_model         = "qualquer-nome"   (ignorado; o modelo é o arquivo GGUF)
+#   llm_model         = "qualquer"      (ignorado; o modelo e' o arquivo GGUF)
 #
-# Modelo GGUF: $SACI_GGUF (default ~/.local/share/saci/qwen.gguf). Baixe UMA
-# vez no Wi-Fi (ex.: Qwen2.5-0.5B-Instruct Q4_K_M, ~400 MB, do HuggingFace).
+# Modelo: $SACI_GGUF (default ~/.local/share/saci/qwen.gguf). Log do server:
+# ~/.local/share/saci/llama-server.log
 set -euo pipefail
 
-if [ "${1:-}" != "run" ]; then
-    echo "shim: só entendo 'ollama run <modelo>'" >&2
-    exit 64
-fi
+[ "${1:-}" = "run" ] || { echo "shim: só entendo 'ollama run <modelo>'" >&2; exit 64; }
 
 GGUF="${SACI_GGUF:-$HOME/.local/share/saci/qwen.gguf}"
-if [ ! -f "$GGUF" ]; then
-    echo "shim: modelo GGUF não encontrado em $GGUF" >&2
-    echo "      baixe um Qwen2.5-0.5B-Instruct Q4_K_M do HuggingFace para lá" >&2
-    exit 66
-fi
+[ -f "$GGUF" ] || { echo "shim: GGUF não encontrado em $GGUF" >&2; exit 66; }
 
-LLAMA="$(command -v llama-cli || command -v main || true)"
-if [ -z "$LLAMA" ]; then
-    echo "shim: llama-cli não encontrado (pkg install llama-cpp)" >&2
+PORT="${SACI_LLAMA_PORT:-18099}"
+BASE="http://127.0.0.1:$PORT"
+SACI_HOME_DIR="$HOME/.local/share/saci"
+LOG="$SACI_HOME_DIR/llama-server.log"
+mkdir -p "$SACI_HOME_DIR"
+
+if ! command -v llama-server > /dev/null 2>&1; then
+    echo "shim: llama-server não encontrado (pkg install llama-cpp)" >&2
     exit 69
 fi
 
+# (Re)sobe o server se não estiver respondendo (ex.: sessão anterior caiu).
+if ! curl -s -o /dev/null --max-time 5 "$BASE/health"; then
+    # mata zumbi da porta (bracket trick: padrão não casa com esta própria linha)
+    pkill -f "llama-serve[r].*--port $PORT" 2>/dev/null || true
+    nohup llama-server -m "$GGUF" --port "$PORT" -ngl 0 -c 2048 \
+        > "$LOG" 2>&1 &
+    for _ in $(seq 1 180); do
+        curl -s -o /dev/null --max-time 2 "$BASE/health" && break
+        sleep 1
+    done
+    if ! curl -s -o /dev/null --max-time 2 "$BASE/health"; then
+        echo "shim: llama-server não respondeu em $BASE (log: $LOG)" >&2
+        exit 69
+    fi
+fi
+
 prompt=$(cat)
-# So' flags estaveis do llama-cli: -m (modelo), -p (prompt one-shot; o
-# processo imprime a resposta e sai), -ngl 0 (CPU). Sem --no-display:
-# o nome dessa flag varia entre versoes e quebraria o exec.
-exec "$LLAMA" -m "$GGUF" -p "$prompt" -ngl 0
+
+# /v1/chat/completions aplica o chat template do modelo (Qwen-Instruct)
+# e devolve só a mensagem — exatamente o que o QwenEngine espera.
+payload=$(python3 -c '
+import json, sys
+print(json.dumps({
+    "messages": [{"role": "user", "content": sys.argv[1]}],
+    "max_tokens": 256,
+    "temperature": 0.1,
+}))' "$prompt")
+
+curl -s --max-time 300 "$BASE/v1/chat/completions" \
+    -H 'Content-Type: application/json' \
+    -d "$payload" \
+| python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+print(data["choices"][0]["message"]["content"])'

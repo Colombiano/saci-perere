@@ -1,6 +1,9 @@
-#!/usr/bin/env bash
+#!/data/data/com.termux/files/usr/bin/bash
 # Wrapper espeak-ng com a interface de linha de comando do piper, para o
 # saci ter TTS no Termux sem o binário do piper (o release é glibc-only).
+#
+# Shebang Termux de propósito: este script é EXECUTADO pelo saci (kernel
+# lê o shebang) — /usr/bin/env não existe no Android e daria exit 127.
 #
 # Interface emulada (ver src/tts.cpp):
 #   piper --model <voz.onnx> --output_file <arq.wav> --stdin   (texto no stdin)
