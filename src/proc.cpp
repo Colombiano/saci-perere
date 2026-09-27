@@ -9,15 +9,20 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cerrno>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 #include "saci/bw_probe.hpp"
 #include "saci/config.hpp"
+#include "saci/muxer.hpp"
+#include "saci/reactor.hpp"
 
 namespace {
 
@@ -237,6 +242,76 @@ int selftest() {
             drop = drop || p.drop_detected();
         }
         check("Haar: queda brusca dispara drop", drop);
+    }
+    // 8) Reactor: co_await REAL sobre pipe (v0.4, roadmap item 5) --------
+    {
+        int fds[2];
+        if (::pipe(fds) == 0) {
+            Reactor reactor;
+            std::atomic<int> done{0};
+            std::string got;
+            std::jthread writer([&] {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                const ssize_t w = ::write(fds[1], "saci", 4);
+                (void)w;
+                ::close(fds[1]);
+            });
+            auto reader = [](Reactor& r, int fd, std::string& out,
+                             std::atomic<int>& d) -> Task<int> {
+                char buf[16]{};
+                const ssize_t n = co_await Readable{r, fd, buf, sizeof buf};
+                if (n > 0) out.append(buf, static_cast<std::size_t>(n));
+                d.store(1);
+                d.notify_all();
+                co_return 0;
+            };
+            auto task = reader(reactor, fds[0], got, done);
+            done.wait(0);  // atomic::wait — sem busy-loop
+            ::close(fds[0]);
+            check("reactor: co_await Readable retoma no evento", got == "saci",
+                  "lido=" + got);
+        } else {
+            check("reactor: co_await Readable retoma no evento", false, "pipe falhou");
+        }
+    }
+    // 9) pump_fds ponta a ponta: head | bomba-coroutine | wc -c ----------
+    {
+        int q[2], f[2];
+        if (::pipe(q) == 0 && ::pipe(f) == 0) {
+            for (int fd : {q[0], q[1], f[0], f[1]}) {
+                ::fcntl(fd, F_SETFD, ::fcntl(fd, F_GETFD) | FD_CLOEXEC);
+            }
+            Reactor reactor;
+            BandwidthProbe probe;
+            std::atomic<int> done{0};
+            const pid_t prod = ::fork();  // head -c 100000 /dev/zero > q
+            if (prod == 0) {
+                ::dup2(q[1], STDOUT_FILENO);
+                ::execlp("head", "head", "-c", "100000", "/dev/zero", nullptr);
+                _exit(127);
+            }
+            ::close(q[1]);
+            const pid_t cons = ::fork();  // wc -c < f
+            if (cons == 0) {
+                ::dup2(f[0], STDIN_FILENO);
+                ::execlp("wc", "wc", "-c", nullptr);
+                _exit(127);
+            }
+            ::close(f[0]);
+            auto task = pump_fds(reactor, q[0], f[1], probe, done);
+            done.wait(0);
+            int st1 = 0, st2 = 0;
+            ::waitpid(prod, &st1, 0);
+            ::waitpid(cons, &st2, 0);
+            const bool ok_pump = WIFEXITED(st1) && WEXITSTATUS(st1) == 0 &&
+                                 WIFEXITED(st2) && WEXITSTATUS(st2) == 0 &&
+                                 done.load() - 1 == 0;
+            check("pump_fds: 100000 bytes atravessaram a coroutine", ok_pump,
+                  "code=" + std::to_string(done.load() - 1));
+        } else {
+            check("pump_fds: 100000 bytes atravessaram a coroutine", false,
+                  "pipe falhou");
+        }
     }
     return ok ? 0 : 1;
 }

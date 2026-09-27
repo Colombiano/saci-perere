@@ -35,6 +35,17 @@ return {
   -- v0.3: re-spawn do mux em modo fifo (quedas de rede). 0 = falha rapida.
   mux_retries      = 3,
 
+  -- v0.4: escada de qualidade (degrau x kbps). Vazio/ausente = tabela
+  -- consteval embutida (144/240/360/480/720p).
+  -- ladder = {
+  --   { height = 144, video_kbps = 80 },
+  --   { height = 360, video_kbps = 700 },
+  -- },
+
+  -- v0.4: hooks Lua opcionais — script com on_stage(nome, ms) chamado a
+  -- cada troca de etapa do pipeline. Exemplo pronto em lua/hooks.lua.
+  hooks_file       = "",  -- ex.: "lua/hooks.lua"
+
   -- sincronia: LIMITES DE NATURALIDADE (invariantes do SyncFitter)
   tempo_min        = 0.85,
   tempo_max        = 1.30,

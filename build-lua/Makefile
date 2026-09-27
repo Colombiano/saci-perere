@@ -318,6 +318,30 @@ src/proc.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/proc.cpp.s
 .PHONY : src/proc.cpp.s
 
+src/reactor.o: src/reactor.cpp.o
+.PHONY : src/reactor.o
+
+# target to build an object file
+src/reactor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/reactor.cpp.o
+.PHONY : src/reactor.cpp.o
+
+src/reactor.i: src/reactor.cpp.i
+.PHONY : src/reactor.i
+
+# target to preprocess a source file
+src/reactor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/reactor.cpp.i
+.PHONY : src/reactor.cpp.i
+
+src/reactor.s: src/reactor.cpp.s
+.PHONY : src/reactor.s
+
+# target to generate assembly for a file
+src/reactor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/reactor.cpp.s
+.PHONY : src/reactor.cpp.s
+
 src/stream.o: src/stream.cpp.o
 .PHONY : src/stream.o
 
@@ -469,6 +493,9 @@ help:
 	@echo "... src/proc.o"
 	@echo "... src/proc.i"
 	@echo "... src/proc.s"
+	@echo "... src/reactor.o"
+	@echo "... src/reactor.i"
+	@echo "... src/reactor.s"
 	@echo "... src/stream.o"
 	@echo "... src/stream.i"
 	@echo "... src/stream.s"

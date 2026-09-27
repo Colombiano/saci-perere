@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "saci/stream.hpp"
+
 namespace saci {
 
 // Politica local: sobrescreve campos do Config global quando a URL casa
@@ -43,6 +45,14 @@ struct Config {
 
     // v0.3: re-spawn do mux (modo fifo). 0 = falha rapida como antes.
     int mux_retries = 3;
+
+    // v0.4: escada de qualidade (vazia = tabela consteval de stream.hpp).
+    // Lua: ladder = { {height=360, video_kbps=700}, ... }
+    std::vector<QualityRung> ladder;
+
+    // v0.4: hooks Lua opcionais — script com on_stage(nome, ms) chamado a
+    // cada troca de etapa (ex.: lua/hooks.lua). Vazio = sem hooks.
+    std::string hooks_file;
 
     // sincronia (ver Ontologia: invariantes)
     double tempo_min = 0.85;

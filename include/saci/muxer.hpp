@@ -7,10 +7,13 @@
 // item 3 do roadmap (feedback de banda) comeca AQUI, medindo o sinal real
 // em vez de estimar no escuro.
 // Sincronizacao PTS/DTS por construcao: um unico muxer.
+#include <atomic>
 #include <string>
 #include <vector>
 
 #include "saci/bw_probe.hpp"
+#include "saci/coro.hpp"
+#include "saci/reactor.hpp"
 
 namespace saci {
 
@@ -19,6 +22,13 @@ struct MuxSession {
     std::string narration_path;            // narracao.mp3 (lado A do mux)
     std::vector<std::string> player_argv;  // ex.: mpv --cache=yes -
 };
+
+// Bomba (v0.4, roadmap item 5): yt-dlp -> ffmpeg COMO COROUTINE.
+// Cada leitura/escrita e um co_await de prontidao no Reactor — nada de
+// poll() manual. `done` segue a convencao: 0 = rodando; code+1 ao final.
+// Fecha os fds ao terminar. Exposta para o selftest (head|pump|wc).
+Task<int> pump_fds(Reactor& reactor, int q_read, int f_write,
+                   BandwidthProbe& probe, std::atomic<int>& done);
 
 // Estrutura de processos vivos. ~MuxHandle faz waitpid de todos.
 class MuxHandle {
@@ -30,7 +40,7 @@ public:
     MuxHandle& operator=(const MuxHandle&) = delete;
     ~MuxHandle();
 
-    // Bombeia ate o fim do stream e entao faz waitpid de todos.
+    // Roda a bomba como coroutine (reator proprio) e depois waitpid de todos.
     // Retorna exit code do ffmpeg (ou do primeiro a falhar).
     int wait_all();
 
@@ -38,11 +48,9 @@ public:
     // processo killado). O orchestrator usa isso para o re-spawn (fifo).
     bool premature_exit() const { return premature_; }
 
-    // Medicao acumulada do pump (vazao observada no ultimo wait_all).
+    // Medicao acumulada da bomba (vazao observada no ultimo wait_all).
     const BandwidthProbe& probe() const { return probe_; }
 private:
-    int pump();  // yt-dlp -> ffmpeg, medindo (v0.3, item 3)
-
     std::vector<int> pids_;      // todos (para ~MuxHandle reapar quem sobrar)
     std::vector<int> fds_;       // pipes que o handle fecha
     int ytdlp_pid_ = -1;

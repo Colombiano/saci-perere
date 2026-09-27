@@ -12,6 +12,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/saci.dir/src/orchestrator.cpp.o.d"
   "CMakeFiles/saci.dir/src/proc.cpp.o"
   "CMakeFiles/saci.dir/src/proc.cpp.o.d"
+  "CMakeFiles/saci.dir/src/reactor.cpp.o"
+  "CMakeFiles/saci.dir/src/reactor.cpp.o.d"
   "CMakeFiles/saci.dir/src/stream.cpp.o"
   "CMakeFiles/saci.dir/src/stream.cpp.o.d"
   "CMakeFiles/saci.dir/src/subtitle.cpp.o"

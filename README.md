@@ -6,8 +6,8 @@ redemoinho de pipes — e não deixa rastro no seu disco.
 
 ![Licença](https://img.shields.io/github/license/Colombiano/saci-perere)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-blue)
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.3.0-orange)
-![selftest](https://img.shields.io/badge/selftest-7%2F7-brightgreen)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.4.0-orange)
+![selftest](https://img.shields.io/badge/selftest-9%2F9-brightgreen)
 
 > ⚖️ **Aviso legal**: o Saci Pererê respeita os Termos de Serviço do YouTube e
 > a legislação de direitos autorais. Foi construído para **uso pessoal,
@@ -77,6 +77,26 @@ estimada com folga de 25%.
   `bw_estimate.txt` para orientar a próxima sessão.
 - **Selftest 7/7**: novos testes de FFT (senoide → periodicidade ≈ 1;
   constante → 0), estimador robusto e Haar.
+
+### Novidades da v0.4
+
+- **`co_await` real sobre pipes (item 5 do roadmap)**: novo `Reactor`
+  (poll + `std::jthread`/`stop_token`) com awaiters `Readable`/`Writable`
+  — a bomba do mux virou coroutine `Task<int>`: cada leitura/escrita é um
+  `co_await` de prontidão, e o término sinaliza via `std::atomic::wait`
+  (sem busy-loop). Dois bugs reais caçados pelo selftest: herança de fds
+  no fork (agora `FD_CLOEXEC` em toda a cadeia) e o dreno do self-pipe do
+  reator (agora não-bloqueante).
+- **C++20 a favor do projeto**: `consteval` para a escada de qualidade
+  padrão, `std::ranges` no `QualityLadder::select`, designated
+  initializers no `MuxSession`, concepts (`FdWaiter`).
+- **Lua ainda mais presente**: a tabela `ladder` sobrescreve os degraus;
+  **hooks de estágio** (`lua/hooks.lua`) — `on_stage(nome, ms)` a cada
+  troca de etapa, com exceção engolida de propósito (hook nunca derruba
+  o pipeline).
+- **Degrau real do probe**: `bw_estimate.txt` da sessão anterior agora
+  limita o degrau inicial via escada (consteval ou Lua).
+- Selftest: **9/9** (novos: reactor e pump_fds ponta a ponta).
 
 ### Roadmap de idiomas
 
@@ -152,14 +172,15 @@ saci-perere/
 ├── docs/
 │   └── ONTOLOGY.md         # ontologia formal (classes, relações, Mermaid)
 ├── lua/
-│   └── default_config.lua  # políticas declarativas (retorna a tabela Config)
+│   ├── default_config.lua  # políticas declarativas (retorna a tabela Config)
+│   └── hooks.lua           # exemplo de hooks on_stage (opcional)
 ├── vendor/sol/             # sol2 (MIT) vendored — build Lua sem instalar nada
 ├── include/saci/           # headers: concepts, coro, segment, ring_buffer,
 │                           # subtitle, translate, tts, sync, stream, muxer,
-│                           # bw_probe, config, proc, orchestrator
+│                           # bw_probe, config, proc, reactor, orchestrator
 ├── src/                    # translation units (main, proc, subtitle,
 │                           # stream, translate, tts, sync, muxer, config,
-│                           # bw_probe, orchestrator)
+│                           # bw_probe, reactor, orchestrator)
 └── build/                  # gerado pelo cmake (não versionado)
 ```
 
@@ -232,6 +253,25 @@ estimated bandwidth with a 25% margin.
   `bw_estimate.txt` to steer the next session.
 - **Selftest 7/7**: new FFT tests (sine → periodicity ≈ 1; constant → 0),
   robust estimator and Haar.
+
+### What's new in v0.4
+
+- **Real `co_await` on pipes (roadmap item 5)**: new `Reactor`
+  (poll + `std::jthread`/`stop_token`) with `Readable`/`Writable`
+  awaiters — the mux pump is now a `Task<int>` coroutine: every read/write
+  is a readiness `co_await`, and completion signals through
+  `std::atomic::wait` (no busy-loop). Two real bugs caught by the selftest:
+  inherited fds across fork (now `FD_CLOEXEC` on the whole chain) and the
+  reactor's self-pipe drain (now non-blocking).
+- **C++20 pulling its weight**: `consteval` for the default quality
+  ladder, `std::ranges` in `QualityLadder::select`, designated
+  initializers in `MuxSession`, concepts (`FdWaiter`).
+- **Even more Lua**: the `ladder` table overrides the rungs; **stage
+  hooks** (`lua/hooks.lua`) — `on_stage(name, ms)` on every stage change,
+  with exceptions deliberately swallowed (a hook never kills the pipeline).
+- **Real probe-driven rung**: the previous session's `bw_estimate.txt`
+  now caps the initial rung via the ladder (consteval or Lua).
+- Selftest: **9/9** (new: reactor and end-to-end pump_fds).
 
 ### Language roadmap
 
@@ -351,6 +391,26 @@ banda estimada con un margen del 25%.
 - **Selftest 7/7**: nuevas pruebas de FFT (senoide → periodicidad ≈ 1;
   constante → 0), estimador robusto y Haar.
 
+### Novedades de la v0.4
+
+- **`co_await` real sobre pipes (ítem 5 del roadmap)**: nuevo `Reactor`
+  (poll + `std::jthread`/`stop_token`) con awaiters `Readable`/`Writable`
+  — la bomba del mux ahora es una coroutine `Task<int>`: cada
+  lectura/escritura es un `co_await` de prontitud, y el fin señala vía
+  `std::atomic::wait` (sin busy-loop). Dos bugs reales cazados por el
+  selftest: herencia de fds en el fork (ahora `FD_CLOEXEC` en toda la
+  cadena) y el drenaje del self-pipe del reactor (ahora no bloqueante).
+- **C++20 a favor del proyecto**: `consteval` para la escalera de calidad
+  por defecto, `std::ranges` en `QualityLadder::select`, designated
+  initializers en `MuxSession`, concepts (`FdWaiter`).
+- **Lua aún más presente**: la tabla `ladder` sobrescribe los escalones;
+  **hooks de etapa** (`lua/hooks.lua`) — `on_stage(nombre, ms)` en cada
+  cambio de etapa, con excepción tragada a propósito (un hook nunca tumba
+  el pipeline).
+- **Escalón real del probe**: el `bw_estimate.txt` de la sesión anterior
+  ahora limita el escalón inicial vía la escalera (consteval o Lua).
+- Selftest: **9/9** (nuevos: reactor y pump_fds de punta a punta).
+
 ### Roadmap de idiomas
 
 Hoy el destino es **pt-BR**. En versiones posteriores, el mismo pipeline
@@ -460,6 +520,24 @@ YouTube 原始音轨**按设计被丢弃**:TTS 旁白取而代之,画质选择�
   `mux_retries`。带宽估计持久化到 `bw_estimate.txt`,用于指导下一次会话。
 - **Selftest 7/7**:新增 FFT 测试(正弦 → 周期性 ≈ 1;常量 → 0)、
   稳健估计器和 Haar 测试。
+
+### v0.4 新特性
+
+- **管道上的真 `co_await`(路线图第 5 项)**:新增 `Reactor`
+  (poll + `std::jthread`/`stop_token`),带 `Readable`/`Writable`
+  awaiter —— mux 泵现在是 `Task<int>` 协程:每次读/写都是就绪
+  `co_await`,完成时通过 `std::atomic::wait` 通知(无忙等)。selftest
+  抓到两个真实 bug:fork 的 fd 继承(现在整条链 `FD_CLOEXEC`)和
+  反应堆自管道排空(现在非阻塞)。
+- **C++20 大显身手**:默认画质阶梯用 `consteval`、`QualityLadder::select`
+  用 `std::ranges`、`MuxSession` 用 designated initializers、
+  concepts(`FdWaiter`)。
+- **更多 Lua**:`ladder` 表可覆盖档位;**阶段钩子**(`lua/hooks.lua`)——
+  每次阶段切换调用 `on_stage(nome, ms)`,异常被有意吞掉(钩子永远不会
+  弄垮流水线)。
+- **探测器真正作用于档位**:上一会话的 `bw_estimate.txt` 现在通过阶梯
+  (consteval 或 Lua)限制初始档位。
+- Selftest:**9/9**(新增:reactor 和端到端 pump_fds)。
 
 ### 语言路线图
 

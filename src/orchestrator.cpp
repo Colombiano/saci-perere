@@ -15,7 +15,25 @@
 #include "saci/translate.hpp"
 #include "saci/tts.hpp"
 
+#ifdef SACI_WITH_LUA
+#include <sol/sol.hpp>
+#endif
+
 namespace saci {
+
+// Hooks Lua (v0.4): on_stage(nome, ms) a cada troca de etapa.
+// pimpl para o header nao depender de sol2.
+struct Orchestrator::Hooks {
+#ifdef SACI_WITH_LUA
+    sol::state lua;
+    bool ok = false;
+#endif
+};
+
+Orchestrator::Orchestrator(Config cfg) : cfg_(std::move(cfg)) {}
+Orchestrator::~Orchestrator() = default;
+Orchestrator::Orchestrator(Orchestrator&&) noexcept = default;
+Orchestrator& Orchestrator::operator=(Orchestrator&&) noexcept = default;
 
 namespace {
 
@@ -54,8 +72,20 @@ const char* stage_name(Stage s) {
 }
 
 void Orchestrator::enter(Stage s) {
+    const auto now = std::chrono::steady_clock::now();
+    const long ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now - last_).count();
+    last_ = now;
     stage_ = s;
-    std::cerr << "[saci] etapa: " << stage_name(s) << "\n";
+    std::cerr << "[saci] etapa: " << stage_name(s) << " (+" << ms << " ms)\n";
+#ifdef SACI_WITH_LUA
+    // Hook de usuario NUNCA derruba o pipeline: excecao aqui e engolida.
+    if (hooks_ && hooks_->ok) {
+        try {
+            hooks_->lua["on_stage"](stage_name(s), ms);
+        } catch (...) { /* o show e do video, nao do hook */ }
+    }
+#endif
 }
 
 int Orchestrator::run(const std::string& url,
@@ -66,6 +96,21 @@ int Orchestrator::run(const std::string& url,
     // v0.2: politicas por-site — o config efetivo mistura o global com a
     // primeira regra de site que casa com a URL (ver Config::effective_for).
     const Config eff = cfg_.effective_for(url);
+
+#ifdef SACI_WITH_LUA
+    // v0.4: hooks Lua opcionais (on_stage por etapa; erro nao derruba nada)
+    if (!eff.hooks_file.empty()) {
+        try {
+            hooks_ = std::make_unique<Hooks>();
+            hooks_->lua.open_libraries(sol::lib::base);
+            hooks_->lua.script_file(eff.hooks_file);
+            hooks_->ok = true;
+        } catch (const std::exception& e) {
+            std::cerr << "[saci] hooks nao carregados: " << e.what() << "\n";
+            hooks_.reset();
+        }
+    }
+#endif
 
     // 1. Legendas ------------------------------------------------------
     enter(Stage::FetchSubs);
@@ -133,11 +178,31 @@ int Orchestrator::run(const std::string& url,
 
     // 7. Stream + mux --------------------------------------------------
     enter(Stage::StreamMux);
-    MuxSession sess;
-    sess.source_argv = {"yt-dlp", "-f",
-                        yt_dlp_format_selector(eff.max_height), url};
-    sess.narration_path = narration.string();
-    sess.player_argv = {eff.player, "--cache=yes", "--really-quiet", "-"};
+
+    // v0.4: o probe da sessao anterior vira degrau concreto — a escada
+    // consteval de stream.hpp (ou a tabela `ladder` da Lua) escolhe o
+    // maior degrau que cabe na estimativa; sem estimativa, segue o config.
+    int cap = eff.max_height;
+    {
+        std::ifstream be(workdir / "bw_estimate.txt");
+        double est = 0;
+        be >> est;
+        if (est > 0) {
+            QualityLadder ladder = eff.ladder.empty()
+                                       ? QualityLadder::with_defaults()
+                                       : QualityLadder{eff.ladder};
+            cap = std::min(cap, ladder.select(static_cast<std::int64_t>(est)).height);
+            std::cerr << "[saci] estimativa anterior " << static_cast<long>(est)
+                      << " kbps -> degrau " << cap << "p\n";
+        }
+    }
+
+    // designated initializers (C++20): sessao declarada de uma vez
+    MuxSession sess{.source_argv = {"yt-dlp", "-f",
+                                    yt_dlp_format_selector(cap), url},
+                    .narration_path = narration.string(),
+                    .player_argv = {eff.player, "--cache=yes",
+                                    "--really-quiet", "-"}};
 
     // v0.3 (roadmap item 4): re-spawn do mux em modo fifo. O pump mede a
     // banda real; prematuro => rede/yt-dlp caiu => tenta de novo com

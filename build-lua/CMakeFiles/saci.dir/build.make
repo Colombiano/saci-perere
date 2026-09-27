@@ -184,10 +184,24 @@ CMakeFiles/saci.dir/src/muxer.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/saci.dir/src/muxer.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/guest/saci-perere/src/muxer.cpp -o CMakeFiles/saci.dir/src/muxer.cpp.s
 
+CMakeFiles/saci.dir/src/reactor.cpp.o: CMakeFiles/saci.dir/flags.make
+CMakeFiles/saci.dir/src/reactor.cpp.o: /home/guest/saci-perere/src/reactor.cpp
+CMakeFiles/saci.dir/src/reactor.cpp.o: CMakeFiles/saci.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/saci.dir/src/reactor.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/saci.dir/src/reactor.cpp.o -MF CMakeFiles/saci.dir/src/reactor.cpp.o.d -o CMakeFiles/saci.dir/src/reactor.cpp.o -c /home/guest/saci-perere/src/reactor.cpp
+
+CMakeFiles/saci.dir/src/reactor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/saci.dir/src/reactor.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/guest/saci-perere/src/reactor.cpp > CMakeFiles/saci.dir/src/reactor.cpp.i
+
+CMakeFiles/saci.dir/src/reactor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/saci.dir/src/reactor.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/guest/saci-perere/src/reactor.cpp -o CMakeFiles/saci.dir/src/reactor.cpp.s
+
 CMakeFiles/saci.dir/src/config.cpp.o: CMakeFiles/saci.dir/flags.make
 CMakeFiles/saci.dir/src/config.cpp.o: /home/guest/saci-perere/src/config.cpp
 CMakeFiles/saci.dir/src/config.cpp.o: CMakeFiles/saci.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/saci.dir/src/config.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/saci.dir/src/config.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/saci.dir/src/config.cpp.o -MF CMakeFiles/saci.dir/src/config.cpp.o.d -o CMakeFiles/saci.dir/src/config.cpp.o -c /home/guest/saci-perere/src/config.cpp
 
 CMakeFiles/saci.dir/src/config.cpp.i: cmake_force
@@ -201,7 +215,7 @@ CMakeFiles/saci.dir/src/config.cpp.s: cmake_force
 CMakeFiles/saci.dir/src/bw_probe.cpp.o: CMakeFiles/saci.dir/flags.make
 CMakeFiles/saci.dir/src/bw_probe.cpp.o: /home/guest/saci-perere/src/bw_probe.cpp
 CMakeFiles/saci.dir/src/bw_probe.cpp.o: CMakeFiles/saci.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/saci.dir/src/bw_probe.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/saci.dir/src/bw_probe.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/saci.dir/src/bw_probe.cpp.o -MF CMakeFiles/saci.dir/src/bw_probe.cpp.o.d -o CMakeFiles/saci.dir/src/bw_probe.cpp.o -c /home/guest/saci-perere/src/bw_probe.cpp
 
 CMakeFiles/saci.dir/src/bw_probe.cpp.i: cmake_force
@@ -215,7 +229,7 @@ CMakeFiles/saci.dir/src/bw_probe.cpp.s: cmake_force
 CMakeFiles/saci.dir/src/orchestrator.cpp.o: CMakeFiles/saci.dir/flags.make
 CMakeFiles/saci.dir/src/orchestrator.cpp.o: /home/guest/saci-perere/src/orchestrator.cpp
 CMakeFiles/saci.dir/src/orchestrator.cpp.o: CMakeFiles/saci.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/saci.dir/src/orchestrator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/saci.dir/src/orchestrator.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/saci.dir/src/orchestrator.cpp.o -MF CMakeFiles/saci.dir/src/orchestrator.cpp.o.d -o CMakeFiles/saci.dir/src/orchestrator.cpp.o -c /home/guest/saci-perere/src/orchestrator.cpp
 
 CMakeFiles/saci.dir/src/orchestrator.cpp.i: cmake_force
@@ -236,6 +250,7 @@ saci_OBJECTS = \
 "CMakeFiles/saci.dir/src/tts.cpp.o" \
 "CMakeFiles/saci.dir/src/sync.cpp.o" \
 "CMakeFiles/saci.dir/src/muxer.cpp.o" \
+"CMakeFiles/saci.dir/src/reactor.cpp.o" \
 "CMakeFiles/saci.dir/src/config.cpp.o" \
 "CMakeFiles/saci.dir/src/bw_probe.cpp.o" \
 "CMakeFiles/saci.dir/src/orchestrator.cpp.o"
@@ -251,6 +266,7 @@ saci: CMakeFiles/saci.dir/src/translate.cpp.o
 saci: CMakeFiles/saci.dir/src/tts.cpp.o
 saci: CMakeFiles/saci.dir/src/sync.cpp.o
 saci: CMakeFiles/saci.dir/src/muxer.cpp.o
+saci: CMakeFiles/saci.dir/src/reactor.cpp.o
 saci: CMakeFiles/saci.dir/src/config.cpp.o
 saci: CMakeFiles/saci.dir/src/bw_probe.cpp.o
 saci: CMakeFiles/saci.dir/src/orchestrator.cpp.o
@@ -259,7 +275,7 @@ saci: CMakeFiles/saci.dir/compiler_depend.ts
 saci: /usr/lib/x86_64-linux-gnu/liblua5.4.so
 saci: /usr/lib/x86_64-linux-gnu/libm.so
 saci: CMakeFiles/saci.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable saci"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Linking CXX executable saci"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/saci.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

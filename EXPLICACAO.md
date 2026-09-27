@@ -98,11 +98,16 @@ Dependências de runtime: `yt-dlp`, `ffmpeg`/`ffprobe`, `piper`,
 ### 3.3 Coroutines C++20
 
 - `Task<T>` / `Task<void>` (promise type própria) orquestram as etapas
-  I/O-bound **sem threads**: cada estágio é uma corrotina que produz um valor
+  I/O-bound **sem threads dedicadas por etapa**: cada estágio é uma corrotina que produz um valor
   ou propaga exceção via `unhandled_exception`.
 - Eager scheduling (`initial_suspend_never`) — sem event loop externo, por
   simplicidade de esqueleto; a migração para `co_await` em I/O real fica
   localizada no `Task`.
+- **v0.4 — o `co_await` virou real**: o `Reactor` (poll + `jthread`/
+  `stop_token`) retoma corrotinas em prontidão de fd; a bomba do mux
+  (`pump_fds`) é uma `Task<int>` cujas leituras/escritas são
+  `co_await Readable/Writable`. Término sinalizado com
+  `std::atomic::wait/notify` — sem busy-loop. Ver ADR-002.
 
 ### 3.4 Um poquinho de Lua
 
@@ -196,7 +201,7 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 | 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` | ✅ v0.2 (batch + fallback por segmento) |
 | 3 | Loop adaptativo de banda → degrau | `stream.hpp`, `src/bw_probe.cpp` | ✅ v0.3 (pump mede vazão real; FFT/Haar; troca mid-stream fica p/ fonte adaptativa) |
 | 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | ✅ v0.3 (backoff + `bw_estimate.txt`; resume por Range é roadmap) |
-| 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp` | pendente |
+| 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp`, `reactor.hpp/cpp`, `muxer.cpp` | ✅ v0.4 (Reactor poll próprio — ver ADR-002; bomba virou `Task<int>`; bugs CLOEXEC e self-pipe) |
 | 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
 | 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |
 | 8 | Backend de tradução por LLM (Qwen, Apache 2.0) | `translate.hpp/cpp`, `orchestrator.cpp` | ✅ v0.3 (`QwenEngine` via Ollama; `translate_backend` em Lua) |
@@ -258,3 +263,45 @@ implementação própria seria mais robusto e mais rápido?
 (b) relicenciar o saci para GPLv2+; (c) usar a FFT da `libavutil` do
 FFmpeg — **já é dependência do projeto** — via subprocesso ou linkagem,
 antes de puxar um framework novo.
+
+### ADR-002 (v0.4): Reactor poll próprio em vez de io_uring/liburing
+
+**Status:** aceita · **Data:** 2026-09-26
+
+**Contexto.** O item 5 do roadmap pedia "`co_await` real sobre pipes
+(io_uring)". A v0.4 entrega o `co_await` real, mas sobre um reator
+`poll(2)` próprio em vez de io_uring via liburing. Por quê?
+
+**Decisão.** Reator poll próprio (`include/saci/reactor.hpp`,
+`src/reactor.cpp`). io_uring não é adotado.
+
+**Fatos verificados.**
+
+1. **Dependência.** liburing é mais uma dependência de build/link em um
+   projeto cujo argumento é justamente build trivial em máquina rural
+   (GCC 12+, zero deps além do stdlib — o sol2 vendored já é a exceção
+   declarada). io_uring puro via syscalls é viável, mas adiciona dezenas
+   de linhas de setup de rings/opcodes para um ganho que não medimos.
+2. **Volume de fds.** O saci multiplexa **2** pipes (yt-dlp→bomba,
+   bomba→ffmpeg). poll() escala mal depois de ~centenas de fds; io_uring
+   brilha em milhares. Estamos três ordens de grandeza abaixo do ponto
+   em que a escolha importa.
+3. **Portabilidade.** poll(2) é POSIX; io_uring é Linux-only e muda de
+   comportamento entre kernels — exatamente o tipo de variável que uma
+   máquina rural antiga não perdoa.
+4. **Coroutines primeiro.** O objetivo do item era `co_await` real sobre
+   pipes — o reator entrega isso com ~120 linhas auditáveis, e o padrão
+   de awaiter (`FdWaiter`) não muda se um dia o backend virar io_uring.
+
+**Consequências.**
+
+- ✅ Build continua zero-dep; selftest cobre reactor + bomba ponta a ponta.
+- ❌ Latência de prontidão com timeout de 100 ms (irrelevante para o pump,
+  que convive com janelas de 2 s); sem batching de syscalls do io_uring.
+
+**Gatilhos de reavaliação.**
+
+- Fds multiplexados **> ~100** (ex.: filas fifo por canal em disco).
+- Necessidade de **zero-copy** (splice/sendfile via io_uring).
+- Medição mostrando o poll como gargalo (hoje: 0,000021% do orçamento —
+  ver ADR-001).

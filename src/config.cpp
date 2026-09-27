@@ -42,6 +42,7 @@ saci::Config parse_kv(const std::string& text) {
         else if (k == "llm_cmd") c.llm_cmd = v;
         else if (k == "llm_model") c.llm_model = v;
         else if (k == "mux_retries") c.mux_retries = std::stoi(v);
+        else if (k == "hooks_file") c.hooks_file = v;
         else if (k == "tempo_min") c.tempo_min = std::stod(v);
         else if (k == "tempo_max") c.tempo_max = std::stod(v);
         else if (k == "drift_threshold_ms") c.drift_threshold_ms = std::stol(v);
@@ -78,11 +79,26 @@ Config Config::load(const std::filesystem::path& file) {
     c.llm_cmd            = t.get_or<std::string>("llm_cmd", "ollama");
     c.llm_model          = t.get_or<std::string>("llm_model", "qwen2.5");
     c.mux_retries        = t.get_or("mux_retries", 3);
+    c.hooks_file         = t.get_or<std::string>("hooks_file", "");
     c.tempo_min          = t.get_or("tempo_min", 0.85);
     c.tempo_max          = t.get_or("tempo_max", 1.30);
     c.drift_threshold_ms = t.get_or("drift_threshold_ms", 300L);
     c.ring_bytes         = t.get_or("ring_bytes", std::int64_t{50} << 20);
     c.fifo_mode          = t.get_or("fifo_mode", false);
+
+    // ladder = { {height=..., video_kbps=...}, ... } — sobrescreve a
+    // tabela consteval de stream.hpp; ordenacao garantida por height.
+    sol::optional<sol::table> ladder = t["ladder"];
+    if (ladder) {
+        for (auto& [_, v] : ladder->pairs()) {
+            sol::table rt = v.as<sol::table>();
+            QualityRung r;
+            r.height     = rt.get_or("height", 0);
+            r.video_kbps = rt.get_or("video_kbps", 0);
+            if (r.height > 0 && r.video_kbps > 0) c.ladder.push_back(r);
+        }
+        std::ranges::sort(c.ladder, {}, &QualityRung::height);
+    }
 
     // sites = { {pattern=..., max_height=..., ...}, ... }
     sol::optional<sol::table> sites = t["sites"];

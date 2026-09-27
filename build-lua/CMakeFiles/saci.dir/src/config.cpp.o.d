@@ -194,7 +194,21 @@ CMakeFiles/saci.dir/src/config.cpp.o: \
  /usr/include/c++/14/bits/fs_dir.h /usr/include/c++/14/bits/fs_ops.h \
  /usr/include/c++/14/vector /usr/include/c++/14/bits/stl_vector.h \
  /usr/include/c++/14/bits/stl_bvector.h \
- /usr/include/c++/14/bits/vector.tcc /usr/include/c++/14/fstream \
+ /usr/include/c++/14/bits/vector.tcc \
+ /home/guest/saci-perere/include/saci/stream.hpp \
+ /usr/include/c++/14/algorithm /usr/include/c++/14/bits/stl_algo.h \
+ /usr/include/c++/14/bits/algorithmfwd.h \
+ /usr/include/c++/14/bits/stl_heap.h \
+ /usr/include/c++/14/bits/uniform_int_dist.h \
+ /usr/include/c++/14/bits/stl_tempbuf.h \
+ /usr/include/c++/14/bits/ranges_algo.h \
+ /usr/include/c++/14/bits/ranges_algobase.h \
+ /usr/include/c++/14/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/14/pstl/execution_defs.h /usr/include/c++/14/array \
+ /usr/include/c++/14/ranges /usr/include/c++/14/iterator \
+ /usr/include/c++/14/bits/stream_iterator.h /usr/include/c++/14/optional \
+ /usr/include/c++/14/bits/enable_special_members.h \
+ /usr/include/c++/14/span /usr/include/c++/14/fstream \
  /usr/include/x86_64-linux-gnu/c++/14/bits/basic_file.h \
  /usr/include/x86_64-linux-gnu/c++/14/bits/c++io.h \
  /usr/include/c++/14/bits/fstream.tcc \
@@ -220,7 +234,7 @@ CMakeFiles/saci.dir/src/config.cpp.o: \
  /home/guest/saci-perere/vendor/sol/base_traits.hpp \
  /home/guest/saci-perere/vendor/sol/bind_traits.hpp \
  /home/guest/saci-perere/vendor/sol/pointer_like.hpp \
- /usr/include/c++/14/memory /usr/include/c++/14/bits/stl_tempbuf.h \
+ /usr/include/c++/14/memory \
  /usr/include/c++/14/bits/stl_raw_storage_iter.h \
  /usr/include/c++/14/bits/shared_ptr_atomic.h \
  /usr/include/c++/14/bits/atomic_base.h \
@@ -240,20 +254,15 @@ CMakeFiles/saci.dir/src/config.cpp.o: \
  /usr/include/c++/14/bits/std_mutex.h \
  /usr/include/c++/14/backward/auto_ptr.h \
  /usr/include/c++/14/bits/ranges_uninitialized.h \
- /usr/include/c++/14/bits/ranges_algobase.h \
  /usr/include/c++/14/pstl/glue_memory_defs.h \
- /usr/include/c++/14/pstl/execution_defs.h \
  /home/guest/saci-perere/vendor/sol/string_view.hpp \
  /usr/include/c++/14/functional /usr/include/c++/14/bits/std_function.h \
  /usr/include/c++/14/unordered_map \
  /usr/include/c++/14/bits/unordered_map.h \
  /usr/include/c++/14/bits/hashtable.h \
  /usr/include/c++/14/bits/hashtable_policy.h \
- /usr/include/c++/14/bits/enable_special_members.h \
  /usr/include/c++/14/bits/node_handle.h \
- /usr/include/c++/14/bits/erase_if.h /usr/include/c++/14/array \
- /usr/include/c++/14/iterator /usr/include/c++/14/bits/stream_iterator.h \
- /usr/include/c++/14/variant \
+ /usr/include/c++/14/bits/erase_if.h /usr/include/c++/14/variant \
  /home/guest/saci-perere/vendor/sol/assert.hpp \
  /home/guest/saci-perere/vendor/sol/bytecode.hpp \
  /home/guest/saci-perere/vendor/sol/compatibility.hpp \
@@ -275,7 +284,7 @@ CMakeFiles/saci.dir/src/config.cpp.o: \
  /home/guest/saci-perere/vendor/sol/optional.hpp \
  /home/guest/saci-perere/vendor/sol/in_place.hpp \
  /home/guest/saci-perere/vendor/sol/optional_implementation.hpp \
- /usr/include/c++/14/optional /home/guest/saci-perere/vendor/sol/raii.hpp \
+ /home/guest/saci-perere/vendor/sol/raii.hpp \
  /home/guest/saci-perere/vendor/sol/policies.hpp \
  /home/guest/saci-perere/vendor/sol/ebco.hpp /usr/include/c++/14/cstring \
  /home/guest/saci-perere/vendor/sol/stack_core.hpp \
@@ -290,13 +299,7 @@ CMakeFiles/saci.dir/src/config.cpp.o: \
  /home/guest/saci-perere/vendor/sol/stack_guard.hpp \
  /usr/include/c++/14/bitset /usr/include/c++/14/forward_list \
  /usr/include/c++/14/bits/forward_list.h \
- /usr/include/c++/14/bits/forward_list.tcc /usr/include/c++/14/algorithm \
- /usr/include/c++/14/bits/stl_algo.h \
- /usr/include/c++/14/bits/algorithmfwd.h \
- /usr/include/c++/14/bits/stl_heap.h \
- /usr/include/c++/14/bits/uniform_int_dist.h \
- /usr/include/c++/14/bits/ranges_algo.h \
- /usr/include/c++/14/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/14/bits/forward_list.tcc \
  /home/guest/saci-perere/vendor/sol/stack_check.hpp \
  /home/guest/saci-perere/vendor/sol/stack_check_unqualified.hpp \
  /usr/include/c++/14/cmath /usr/include/math.h \
