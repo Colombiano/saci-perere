@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     const std::string url = argv[1];
 
     saci::Config cfg;
+    bool cfg_loaded = false;
     // v0.6.3: workdir default respeita $TMPDIR (no Android/Termux /tmp nao
     // existe; temp padrao e' $PREFIX/tmp). Desktop: TMPDIR vazio -> /tmp.
     const char* tmp = std::getenv("TMPDIR");
@@ -38,10 +39,32 @@ int main(int argc, char** argv) {
             if (i + 1 >= argc) { std::cerr << k << " precisa de valor\n"; std::exit(64); }
             return argv[++i];
         };
-        if (a == "--config") cfg = saci::Config::load(need("--config"));
+        if (a == "--config") {
+            cfg = saci::Config::load(need("--config"));
+            cfg_loaded = true;
+        }
         else if (a == "--max-height") cfg.max_height = std::stoi(need("--max-height"));
         else if (a == "--workdir") workdir = need("--workdir");
         else { std::cerr << "argumento desconhecido: " << a << "\n"; return 64; }
+    }
+
+    // v0.7.2: sem --config explicito, o binario sozinho (ex.: instalado no
+    // Termux via cmake --install) busca o config padrao do usuario. Antes
+    // so' o wrapper do desktop carregava config — no celular o saci rodava
+    // com defaults e morria no argos (exit 127).
+    if (!cfg_loaded) {
+        try {
+            if (const char* home = std::getenv("HOME")) {
+                std::error_code ec;
+                const auto def = std::filesystem::path(home) / ".config" /
+                                 "saci" / "config.lua";
+                if (std::filesystem::exists(def, ec))
+                    cfg = saci::Config::load(def);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[saci] config padrao com erro (seguindo com "
+                         "defaults): " << e.what() << "\n";
+        }
     }
 
     try {
