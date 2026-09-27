@@ -55,8 +55,8 @@ Task<int> pump_fds(Reactor& reactor, int f_write, BandwidthProbe& probe,
 class MuxHandle {
 public:
     MuxHandle() = default;
-    MuxHandle(MuxHandle&&) noexcept = default;
-    MuxHandle& operator=(MuxHandle&&) noexcept = default;
+    MuxHandle(MuxHandle&& o) noexcept;
+    MuxHandle& operator=(MuxHandle&& o) noexcept;
     MuxHandle(const MuxHandle&) = delete;
     MuxHandle& operator=(const MuxHandle&) = delete;
     ~MuxHandle();

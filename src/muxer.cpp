@@ -44,6 +44,40 @@ MuxHandle::~MuxHandle() {
     for (int pid : pids_) { int s; ::waitpid(pid, &s, 0); }
 }
 
+// Move DE VERDADE: fds/pids sao ints crus — sem zerar a origem, o dtor
+// do movido-fecha fecha/reapa o que o destino ja possui (bug real: double
+// free no primeiro teste de fogo, v0.5).
+MuxHandle::MuxHandle(MuxHandle&& o) noexcept { *this = std::move(o); }
+
+MuxHandle& MuxHandle::operator=(MuxHandle&& o) noexcept {
+    if (this != &o) {
+        // devolve o que tinhamos antes de roubar
+        for (int fd : fds_) ::close(fd);
+        if (f_write_ != -1) ::close(f_write_);
+        for (int pid : pids_) { int s; ::waitpid(pid, &s, 0); }
+
+        pids_ = std::move(o.pids_);
+        fds_ = std::move(o.fds_);
+        ff_pid_ = o.ff_pid_;
+        f_write_ = o.f_write_;
+        premature_ = o.premature_;
+        probe_ = std::move(o.probe_);
+        src_argv_ = std::move(o.src_argv_);
+        direct_url_ = std::move(o.direct_url_);
+        source_retries_ = o.source_retries_;
+
+        o.pids_.clear();
+        o.fds_.clear();
+        o.ff_pid_ = -1;
+        o.f_write_ = -1;
+        o.premature_ = false;
+        o.src_argv_.clear();
+        o.direct_url_.clear();
+        o.source_retries_ = 0;
+    }
+    return *this;
+}
+
 // A bomba como coroutine (v0.4) com RESUME FINO da fonte (v0.5):
 // loop externo de (re)spawn; tentativa 1 vem do spawner (yt-dlp) e as
 // retomadas usam `curl --range <offset>-` na URL direta. O offset e
@@ -187,10 +221,10 @@ int MuxHandle::wait_all() {
 
         Reactor reactor;
         std::atomic<int> done{0};
-        {
-            auto task = pump_fds(reactor, f_write_, probe_, done, opts);
-            f_write_ = -1;  // ownership do fd vai com a coroutine
-        }
+        auto task = pump_fds(reactor, f_write_, probe_, done, opts);
+        f_write_ = -1;  // ownership do fd vai com a coroutine
+        // task PRECISA viver ate depois do wait: destruir o frame com a
+        // coroutine em voo = heap corrompido (bug do primeiro teste de fogo)
         done.wait(0);  // C++20 atomic::wait — dorme ate a bomba sinalizar
         code = done.load() - 1;
         premature_ = (code != 0);

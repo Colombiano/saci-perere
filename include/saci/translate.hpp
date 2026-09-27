@@ -17,7 +17,8 @@ concept TranslationEngine = requires(E e, const std::string& s) {
 class ArgosEngine {
 public:
     ArgosEngine(std::string from, std::string to,
-                std::string cmd = "argos-translate");
+                std::string cmd = "argos-translate",
+                std::string bridge = "");
 
     std::string translate(const std::string& text) const;
 
@@ -29,7 +30,7 @@ public:
     std::vector<std::string> translate_batch(const std::vector<std::string>& texts) const;
 
 private:
-    std::string from_, to_, cmd_;
+    std::string from_, to_, cmd_, bridge_;
 };
 
 // Tradutor via LLM local (v0.3): Qwen — modelo open source chines

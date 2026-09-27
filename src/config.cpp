@@ -32,12 +32,14 @@ saci::Config parse_kv(const std::string& text) {
         std::string v = trim(line.substr(eq + 1));
         if (k == "max_height") c.max_height = std::stoi(v);
         else if (k == "player") c.player = v;
+        else if (k == "yt_dlp") c.yt_dlp = v;
         else if (k == "sub_lang_pref") c.sub_lang_pref = v;
         else if (k == "source_lang") c.source_lang = v;
         else if (k == "target_lang") c.target_lang = v;
         else if (k == "tts_bin") c.tts_bin = v;
         else if (k == "tts_voice") c.tts_voice = v;
         else if (k == "translate_cmd") c.translate_cmd = v;
+        else if (k == "translate_bridge") c.translate_bridge = v;
         else if (k == "translate_backend") c.translate_backend = v;
         else if (k == "llm_cmd") c.llm_cmd = v;
         else if (k == "llm_model") c.llm_model = v;
@@ -63,18 +65,20 @@ Config Config::load(const std::filesystem::path& file) {
     // Antes liamos variaveis globais — um `return {...}` nunca era visto e
     // os defaults de C++ sempre venciam. Agora a tabela retornada e a fonte.
     sol::state lua;
-    lua.open_libraries(sol::lib::base);
+    lua.open_libraries(sol::lib::base, sol::lib::os);
     sol::table t = lua.script_file(file.string());
 
     Config c;
     c.max_height         = t.get_or("max_height", 360);
     c.player             = t.get_or<std::string>("player", "mpv");
+    c.yt_dlp             = t.get_or<std::string>("yt_dlp", "yt-dlp");
     c.sub_lang_pref      = t.get_or<std::string>("sub_lang_pref", "en.*");
     c.source_lang        = t.get_or<std::string>("source_lang", "en");
     c.target_lang        = t.get_or<std::string>("target_lang", "pt-BR");
     c.tts_bin            = t.get_or<std::string>("tts_bin", "piper");
     c.tts_voice          = t.get_or<std::string>("tts_voice", "");
     c.translate_cmd      = t.get_or<std::string>("translate_cmd", "argos-translate");
+    c.translate_bridge   = t.get_or<std::string>("translate_bridge", "");
     c.translate_backend  = t.get_or<std::string>("translate_backend", "argos");
     c.llm_cmd            = t.get_or<std::string>("llm_cmd", "ollama");
     c.llm_model          = t.get_or<std::string>("llm_model", "qwen2.5");

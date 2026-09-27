@@ -198,7 +198,7 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 | Ordem | Tarefa | Arquivos | Estado |
 |---|---|---|---|
 | 1 | `run_capture2` com stdin+stdout | `proc.hpp/cpp` | ✅ v0.2 (poll não-bloqueante + selftest 300 KiB) |
-| 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` | ✅ v0.2 (batch + fallback por segmento) |
+| 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp`, `tools/argos_bridge.py` | ✅ v0.2/v0.6 (batch CLI + fallback; ponte Python = caminho rápido real, 1 carga p/ N segmentos) |
 | 3 | Loop adaptativo de banda → degrau | `stream.hpp`, `src/bw_probe.cpp` | ✅ v0.3 (pump mede vazão real; FFT/Haar; troca mid-stream fica p/ fonte adaptativa) |
 | 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | ✅ v0.3/v0.5 (backoff + `bw_estimate.txt`; **resume fino por Range com stall detect** — ver ADR-003) |
 | 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp`, `reactor.hpp/cpp`, `muxer.cpp` | ✅ v0.4 (Reactor poll próprio — ver ADR-002; bomba virou `Task<int>`; bugs CLOEXEC e self-pipe) |

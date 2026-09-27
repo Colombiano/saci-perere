@@ -25,9 +25,10 @@ struct Config {
     // midia
     int max_height = 360;
     std::string player = "mpv";
+    std::string yt_dlp = "yt-dlp";   // binario do yt-dlp (versao recente!)
 
     // legenda / traducao
-    std::string sub_lang_pref = "en.*";   // regex de idiomas aceitos
+    std::string sub_lang_pref = "en";   // regex de idiomas aceitos
     std::string source_lang = "en";       // lingua de origem da legenda
     std::string target_lang = "pt-BR";    // proximas versoes: es, zh, ...
 
@@ -37,6 +38,9 @@ struct Config {
 
     // traducao
     std::string translate_cmd = "argos-translate";
+    // v0.6: ponte de lote (tools/argos_bridge.py via wrapper) — carrega o
+    // modelo 1x para N segmentos. Vazio = CLI puro (com fallback lento).
+    std::string translate_bridge;
     // v0.3: backend de traducao. "argos" (offline classico) ou "qwen"
     // (LLM open source chines via Ollama/llama.cpp — ver QwenEngine).
     std::string translate_backend = "argos";

@@ -6,7 +6,7 @@ redemoinho de pipes — e não deixa rastro no seu disco.
 
 ![Licença](https://img.shields.io/github/license/Colombiano/saci-perere)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-blue)
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.5.0-orange)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.6.0-orange)
 ![selftest](https://img.shields.io/badge/selftest-11%2F11-brightgreen)
 
 > ⚖️ **Aviso legal**: o Saci Pererê respeita os Termos de Serviço do YouTube e
@@ -114,6 +114,23 @@ estimada com folga de 25%.
 - Sem URL direta (`yt-dlp -g` falhou)? Cai no comportamento v0.4:
   re-spawn completo do mux em `fifo_mode`.
 - Selftest: **11/11**.
+
+### Novidades da v0.6 (teste de fogo real)
+
+- **Tradução em lote de verdade**: `tools/argos_bridge.py` — o CLI do
+  argos traduz o stdin como um parágrafo só e a contagem de linhas não
+  fecha com o SRT (o fallback custava ~4 s/segmento recarregando o
+  stanza). A ponte carrega o modelo **uma vez** para todos os segmentos.
+  Ative com `translate_bridge = "/caminho/do/wrapper"`.
+- **`yt_dlp` configurável** (a 2025.04 quebra com SABR do YouTube).
+- **`--sub-format srt`** e `sub_lang_pref = "en"` (a regex `en.*` puxava
+  variantes demais e tomava HTTP 429).
+- **Normalização de idioma**: `pt-BR` vira `pt` para o argos (o modelo
+  en→pt já é o português brasileiro).
+- **Bug de lifetime de coroutine**: o `Task` da bomba morria no escopo
+  antes do `done.wait()` — frame destruído com a coroutine em voo (heap
+  corrompido, pego só no teste de fogo). E `MuxHandle` com move de
+  verdade (fds/pids zerados na origem).
 
 ### Roadmap de idiomas
 
@@ -308,6 +325,23 @@ estimated bandwidth with a 25% margin.
   mux re-spawn in `fifo_mode`.
 - Selftest: **11/11**.
 
+### What's new in v0.6 (real fire test)
+
+- **Real batch translation**: `tools/argos_bridge.py` — the argos CLI
+  translates stdin as a single paragraph and the line count never matches
+  the SRT (the fallback cost ~4 s/segment reloading stanza). The bridge
+  loads the model **once** for all segments. Enable with
+  `translate_bridge = "/path/to/wrapper"`.
+- **Configurable `yt_dlp`** (2025.04 breaks with YouTube's SABR).
+- **`--sub-format srt`** and `sub_lang_pref = "en"` (the `en.*` regex
+  pulled too many variants and hit HTTP 429).
+- **Language normalization**: `pt-BR` becomes `pt` for argos (the en→pt
+  model is already Brazilian Portuguese).
+- **Coroutine lifetime bug**: the pump's `Task` died in scope before
+  `done.wait()` — frame destroyed mid-flight (heap corruption, only
+  caught in the fire test). And `MuxHandle` with a real move (fds/pids
+  zeroed in the source).
+
 ### Language roadmap
 
 Today's target is **pt-BR**. In subsequent releases the same pipeline will
@@ -463,6 +497,23 @@ banda estimada con un margen del 25%.
   re-spawn completo del mux en `fifo_mode`.
 - Selftest: **11/11**.
 
+### Novedades de la v0.6 (prueba de fuego real)
+
+- **Traducción en lote de verdad**: `tools/argos_bridge.py` — el CLI de
+  argos traduce el stdin como un solo párrafo y el conteo de líneas nunca
+  cuadra con el SRT (el respaldo costaba ~4 s/segmento recargando stanza).
+  El puente carga el modelo **una vez** para todos los segmentos. Actívalo
+  con `translate_bridge = "/ruta/al/wrapper"`.
+- **`yt_dlp` configurable** (2025.04 se rompe con SABR de YouTube).
+- **`--sub-format srt`** y `sub_lang_pref = "en"` (la regex `en.*` traía
+  demasiadas variantes y recibía HTTP 429).
+- **Normalización de idioma**: `pt-BR` se vuelve `pt` para argos (el
+  modelo en→pt ya es portugués brasileño).
+- **Bug de lifetime de coroutine**: el `Task` de la bomba moría en el
+  ámbito antes del `done.wait()` — frame destruido en pleno vuelo (heap
+  corrupto, solo cazado en la prueba de fuego). Y `MuxHandle` con move
+  de verdad (fds/pids zerados en el origen).
+
 ### Roadmap de idiomas
 
 Hoy el destino es **pt-BR**. En versiones posteriores, el mismo pipeline
@@ -605,6 +656,21 @@ YouTube 原始音轨**按设计被丢弃**:TTS 旁白取而代之,画质选择�
 - 没有直链(`yt-dlp -g` 失败)?回退到 v0.4 行为:fifo_mode 下完整
   重生 mux。
 - Selftest:**11/11**。
+
+### v0.6 新特性(真实火测)
+
+- **真正的批量翻译**:`tools/argos_bridge.py` —— argos CLI 把整个
+  stdin 当作一个段落翻译,行数永远对不上 SRT(回退路径每段要 ~4 秒
+  重载 stanza)。桥接脚本**一次加载模型**处理所有段落。用
+  `translate_bridge = "/path/to/wrapper"` 启用。
+- **`yt_dlp` 可配置**(2025.04 在 YouTube SABR 下会挂)。
+- **`--sub-format srt`** 与 `sub_lang_pref = "en"`(正则 `en.*` 会拉
+  太多变体,触发 HTTP 429)。
+- **语言归一化**:`pt-BR` 对 argos 自动变 `pt`(en→pt 模型本来就是巴
+  西葡萄牙语)。
+- **协程生命周期 bug**:泵的 `Task` 在 `done.wait()` 之前随作用域销
+  毁 —— 协程飞行中 frame 被毁(堆损坏,只在火测中暴露)。`MuxHandle`
+  也改为真正的 move(源端 fds/pids 清零)。
 
 ### 语言路线图
 

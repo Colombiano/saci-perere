@@ -8,9 +8,11 @@ return {
   -- midia
   max_height       = 360,          -- maior degrau <= 360p
   player           = "mpv",
+  yt_dlp           = "yt-dlp",     -- binario do yt-dlp; versao recente!
+                                   -- (2025.04 quebra com SABR; use 2025.09+)
 
   -- legenda / traducao
-  sub_lang_pref    = "en.*",       -- regex de idiomas aceitos na busca
+  sub_lang_pref    = "en",       -- regex de idiomas aceitos na busca
   source_lang      = "en",         -- lingua da legenda de origem
   target_lang      = "pt-BR",      -- destino da narracao.
                                    -- ROADMAP DE IDIOMAS: nas proximas
@@ -23,6 +25,9 @@ return {
 
   -- traducao
   translate_cmd    = "argos-translate",
+  -- v0.6: ponte de lote (tools/argos_bridge.py) via wrapper executavel.
+  -- Carrega o modelo 1x p/ N segmentos; sem ela, o fallback e ~4s/segmento.
+  -- translate_bridge = "/caminho/argos-bridge",
   -- v0.3: backend "argos" (offline) ou "qwen" (LLM open source chines,
   -- Apache 2.0, roda local e gratuito via Ollama):
   --   translate_backend = "qwen",

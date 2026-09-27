@@ -7,9 +7,6 @@
 
 namespace saci {
 
-ArgosEngine::ArgosEngine(std::string from, std::string to, std::string cmd)
-    : from_(std::move(from)), to_(std::move(to)), cmd_(std::move(cmd)) {}
-
 namespace {
 std::vector<std::string> split_lines(const std::string& s) {
     std::vector<std::string> lines;
@@ -21,7 +18,19 @@ std::vector<std::string> split_lines(const std::string& s) {
     }
     return lines;
 }
+
+// Argos usa codigo primario ("pt", nao "pt-BR"): o modelo en->pt JA e o
+// portugues brasileiro. Config fica amigavel (pt-BR), CLI recebe o subtag.
+std::string cli_lang(std::string code) {
+    const auto dash = code.find('-');
+    return dash == std::string::npos ? code : code.substr(0, dash);
+}
 } // namespace
+
+ArgosEngine::ArgosEngine(std::string from, std::string to, std::string cmd,
+                         std::string bridge)
+    : from_(cli_lang(std::move(from))), to_(cli_lang(std::move(to))),
+      cmd_(std::move(cmd)), bridge_(std::move(bridge)) {}
 
 std::string ArgosEngine::translate(const std::string& text) const {
     // argos-translate traduz de stdin para stdout.
@@ -36,18 +45,32 @@ std::string ArgosEngine::translate(const std::string& text) const {
 
 std::vector<std::string>
 ArgosEngine::translate_batch(const std::vector<std::string>& texts) const {
-    // Caminho rapido: uma invocacao so. SRT e por construcao texto de uma
-    // linha (o parser cola linhas com espaco), entao '\n' e separador seguro.
+    // SRT e por construcao texto de uma linha (o parser cola linhas com
+    // espaco), entao '\n' e separador seguro.
     std::string joined;
     for (const auto& t : texts) {
         for (char c : t) joined += (c == '\n' || c == '\r') ? ' ' : c;
         joined += '\n';
     }
+
+    // Caminho rapido de verdade (v0.6): a ponte Python carrega o modelo
+    // UMA vez para todos os segmentos. Config: translate_bridge.
+    if (!bridge_.empty()) {
+        auto [code, out] = run_capture2({bridge_, from_, to_}, joined);
+        if (code == 0) {
+            auto lines = split_lines(out);
+            if (lines.size() == texts.size()) return lines;  // ponte OK
+        }
+        // ponte falhou ou contagem estranha: cai no CLI abaixo
+    }
+
+    // Caminho rapido CLI: uma invocacao so; se o CLI devolver a mesma
+    // quantidade de linhas, otimo.
     auto [code, out] = run_capture2({cmd_, "--from-lang", from_,
                                      "--to-lang", to_}, joined);
     if (code == 0) {
         auto lines = split_lines(out);
-        if (lines.size() == texts.size()) return lines;  // caminho rapido OK
+        if (lines.size() == texts.size()) return lines;
     }
 
     // Caminho lento e correto: um processo por segmento. Lento porque

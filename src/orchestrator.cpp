@@ -114,9 +114,10 @@ int Orchestrator::run(const std::string& url,
 
     // 1. Legendas ------------------------------------------------------
     enter(Stage::FetchSubs);
-    std::vector<std::string> dl = {"yt-dlp",
+    std::vector<std::string> dl = {eff.yt_dlp,
         "--write-subs", "--write-auto-subs",
         "--sub-langs", eff.sub_lang_pref,
+        "--sub-format", "srt",
         "--skip-download", "-P", workdir.string(), url};
     int code = run_quiet(dl);
     if (code != 0) { enter(Stage::Error); return code; }
@@ -147,7 +148,8 @@ int Orchestrator::run(const std::string& url,
         QwenEngine q(eff.llm_cmd, eff.llm_model, eff.source_lang, eff.target_lang);
         pt = translate_all(q, texts);
     } else {
-        ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd);
+        ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd,
+                       eff.translate_bridge);
         pt = translate_all(tr, texts);
     }
 
@@ -198,7 +200,7 @@ int Orchestrator::run(const std::string& url,
     }
 
     // designated initializers (C++20): sessao declarada de uma vez
-    MuxSession sess{.source_argv = {"yt-dlp", "-f",
+    MuxSession sess{.source_argv = {eff.yt_dlp, "-f",
                                     yt_dlp_format_selector(cap), url},
                     .narration_path = narration.string(),
                     .player_argv = {eff.player, "--cache=yes",
@@ -209,7 +211,7 @@ int Orchestrator::run(const std::string& url,
     // v0.5: URL direta (yt-dlp -g) alimenta o resume fino por Range.
     // Só resolve se for usar (fifo + retries); senão, re-spawn completo.
     if (eff.fifo_mode && eff.mux_retries > 0) {
-        auto [rc, out] = run_capture({"yt-dlp", "-g", "-f",
+        auto [rc, out] = run_capture({eff.yt_dlp, "-g", "-f",
                                       yt_dlp_format_selector(cap), url});
         if (rc == 0 && !out.empty()) {
             sess.direct_url = out.substr(0, out.find_first_of("\r\n"));
