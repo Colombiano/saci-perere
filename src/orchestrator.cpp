@@ -203,8 +203,8 @@ int Orchestrator::run(const std::string& url,
     MuxSession sess{.source_argv = {eff.yt_dlp, "-f",
                                     yt_dlp_format_selector(cap), url},
                     .narration_path = narration.string(),
-                    .player_argv = {eff.player, "--cache=yes",
-                                    "--really-quiet", "-"},
+                    .player_argv = {eff.player, "--cache=yes", "-"},
+                    // sem --really-quiet: ffmpeg/mpv visiveis p/ diagnostico
                     .direct_url = "",
                     .source_retries = 0};
 

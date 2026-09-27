@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <csignal>
 #include <iostream>
 #include <string>
 
@@ -7,6 +8,12 @@
 #include "saci/proc.hpp"
 
 int main(int argc, char** argv) {
+    // Daemon de pipes: escrever em leitor morto devolve EPIPE tratado em
+    // codigo (Writable::try_complete) em vez de nos matar (SIGPIPE).
+    // Sem isto, a morte do ffmpeg/player derruba o saci inteiro (bug real:
+    // video longo, v0.6).
+    std::signal(SIGPIPE, SIG_IGN);
+
     // Autoteste dos pipes bidirecionais (nao precisa de rede nem de TTS).
     if (argc == 2 && std::string(argv[1]) == "--selftest")
         return saci::selftest();

@@ -204,9 +204,12 @@ int MuxHandle::wait_all() {
                 argv = src_argv_;
                 argv.insert(argv.end(), {"-o", "-"});
             } else {
-                // resume fino: continua do byte exato na URL direta
-                argv = {"curl", "-sS", "-L", "--fail", "--range",
-                        std::to_string(off) + "-", direct_url_};
+                // resume fino: continua do byte exato na URL direta.
+                // -A obrigatorio: o googlevideo devolve 403 para o UA
+                // padrao do curl em requisicoes Range (teste de fogo v0.6).
+                argv = {"curl", "-sS", "-L", "--fail",
+                        "-A", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                        "--range", std::to_string(off) + "-", direct_url_};
             }
             const pid_t pid = ::fork();
             if (pid == 0) {
