@@ -35,6 +35,14 @@ struct Config {
 
     // traducao
     std::string translate_cmd = "argos-translate";
+    // v0.3: backend de traducao. "argos" (offline classico) ou "qwen"
+    // (LLM open source chines via Ollama/llama.cpp — ver QwenEngine).
+    std::string translate_backend = "argos";
+    std::string llm_cmd = "ollama";      // executor do modelo
+    std::string llm_model = "qwen2.5";   // Apache 2.0, local, gratuito
+
+    // v0.3: re-spawn do mux (modo fifo). 0 = falha rapida como antes.
+    int mux_retries = 3;
 
     // sincronia (ver Ontologia: invariantes)
     double tempo_min = 0.85;

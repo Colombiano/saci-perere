@@ -1,5 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/saci.dir/link.d"
+  "CMakeFiles/saci.dir/src/bw_probe.cpp.o"
+  "CMakeFiles/saci.dir/src/bw_probe.cpp.o.d"
   "CMakeFiles/saci.dir/src/config.cpp.o"
   "CMakeFiles/saci.dir/src/config.cpp.o.d"
   "CMakeFiles/saci.dir/src/main.cpp.o"

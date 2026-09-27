@@ -174,6 +174,30 @@ saci/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/build
 .PHONY : saci/fast
 
+src/bw_probe.o: src/bw_probe.cpp.o
+.PHONY : src/bw_probe.o
+
+# target to build an object file
+src/bw_probe.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/bw_probe.cpp.o
+.PHONY : src/bw_probe.cpp.o
+
+src/bw_probe.i: src/bw_probe.cpp.i
+.PHONY : src/bw_probe.i
+
+# target to preprocess a source file
+src/bw_probe.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/bw_probe.cpp.i
+.PHONY : src/bw_probe.cpp.i
+
+src/bw_probe.s: src/bw_probe.cpp.s
+.PHONY : src/bw_probe.s
+
+# target to generate assembly for a file
+src/bw_probe.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/src/bw_probe.cpp.s
+.PHONY : src/bw_probe.cpp.s
+
 src/config.o: src/config.cpp.o
 .PHONY : src/config.o
 
@@ -427,6 +451,9 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... saci"
+	@echo "... src/bw_probe.o"
+	@echo "... src/bw_probe.i"
+	@echo "... src/bw_probe.s"
 	@echo "... src/config.o"
 	@echo "... src/config.i"
 	@echo "... src/config.s"

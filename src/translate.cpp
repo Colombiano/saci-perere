@@ -58,4 +58,34 @@ ArgosEngine::translate_batch(const std::vector<std::string>& texts) const {
     return res;
 }
 
+QwenEngine::QwenEngine(std::string cmd, std::string model,
+                       std::string from, std::string to)
+    : cmd_(std::move(cmd)), model_(std::move(model)),
+      from_(std::move(from)), to_(std::move(to)) {}
+
+std::string QwenEngine::translate(const std::string& text) const {
+    // Prompt curto e fechado: LLM generativo tende a discorrer; pedimos
+    // so a traducao para a saida ser limpa para o TTS.
+    const std::string prompt =
+        "Traduza de " + from_ + " para " + to_ +
+        ". Responda APENAS a traducao, sem explicacoes:\n" + text;
+    auto [code, out] = run_capture2({cmd_, "run", model_}, prompt + "\n");
+    if (code != 0)
+        throw std::runtime_error("LLM falhou (exit " + std::to_string(code) + ")");
+    // Uma linha de saida por prompt; \n final vira espaco inocuo no TTS.
+    std::string cleaned;
+    for (char c : out) cleaned += (c == '\n' || c == '\r') ? ' ' : c;
+    while (!cleaned.empty() && cleaned.back() == ' ') cleaned.pop_back();
+    return cleaned.empty() ? text : cleaned;
+}
+
+std::vector<std::string>
+QwenEngine::translate_batch(const std::vector<std::string>& texts) const {
+    // Sem caminho rapido de proposito: LLM nao garante contagem 1:1.
+    std::vector<std::string> res;
+    res.reserve(texts.size());
+    for (const auto& t : texts) res.push_back(translate(t));
+    return res;
+}
+
 } // namespace saci

@@ -10,11 +10,13 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 
+#include "saci/bw_probe.hpp"
 #include "saci/config.hpp"
 
 namespace {
@@ -203,6 +205,39 @@ int selftest() {
         check("config Lua (tabela retornada preenche Config)", false, e.what());
     }
 #endif
+    // 5) FFT: senoide pura (bin 8) -> periodicidade alta ---------------
+    {
+        BandwidthProbe p;
+        constexpr double pi = 3.14159265358979323846;
+        for (std::size_t t = 0; t < 64; ++t) {
+            const double kbps = 800.0 + 400.0 * std::cos(2.0 * pi * 8.0 * static_cast<double>(t) / 64.0);
+            p.sample_window(static_cast<std::uint64_t>(kbps * 125.0), 1.0);
+        }
+        check("FFT: ciclo forte detectado", p.periodicity() > 0.85,
+              "periodicidade=" + std::to_string(p.periodicity()));
+    }
+    // 6) estimador robusto (p25 x margem) + FFT ignora constante ---------
+    {
+        BandwidthProbe p;
+        for (int t = 0; t < 64; ++t) p.sample_window(100000, 1.0);  // 800 kbps
+        check("estimador: 800 kbps -> 600 (p25 x 0.75)",
+              std::abs(p.estimate_kbps() - 600.0) < 1.0,
+              "estimado=" + std::to_string(p.estimate_kbps()));
+        check("FFT: sinal constante nao e ciclico (DC removido)",
+              p.periodicity() < 0.2,
+              "periodicidade=" + std::to_string(p.periodicity()));
+    }
+    // 7) Haar: queda brusca de vazao aciona drop_detected ----------------
+    {
+        BandwidthProbe p;
+        for (int t = 0; t < 32; ++t) p.sample_window(100000, 1.0);   // 800 kbps
+        bool drop = false;
+        for (int t = 0; t < 8; ++t) {                               // cai p/ 240
+            p.sample_window(30000, 1.0);
+            drop = drop || p.drop_detected();
+        }
+        check("Haar: queda brusca dispara drop", drop);
+    }
     return ok ? 0 : 1;
 }
 

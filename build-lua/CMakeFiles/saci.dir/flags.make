@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DSACI_WITH_LUA
 
-CXX_INCLUDES = -I/home/guest/saci-perere/include -I/usr/include/lua5.4 -I/home/guest/saci-perere/vendor
+CXX_INCLUDES = -I/home/guest/saci-perere/include -I/usr/include/lua5.4 -isystem /home/guest/saci-perere/vendor
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++20 -Wall -Wextra
+CXX_FLAGS = -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wno-array-bounds
 

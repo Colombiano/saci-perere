@@ -32,4 +32,23 @@ private:
     std::string from_, to_, cmd_;
 };
 
+// Tradutor via LLM local (v0.3): Qwen — modelo open source chines
+// (Alibaba, licenca Apache 2.0, gratuito, roda offline via Ollama ou
+// llama.cpp). Mesmo concept que ArgosEngine: troca-se em config, sem
+// tocar no orchestrator. Sugestao: `ollama pull qwen2.5`.
+//
+// Batch e por segmento de proposito: LLM generativo nao garante contagem
+// de linhas 1:1, entao nao ha caminho rapido — cada fala e um prompt.
+class QwenEngine {
+public:
+    QwenEngine(std::string cmd, std::string model,
+               std::string from, std::string to);
+
+    std::string translate(const std::string& text) const;
+    std::vector<std::string> translate_batch(const std::vector<std::string>& texts) const;
+
+private:
+    std::string cmd_, model_, from_, to_;
+};
+
 } // namespace saci

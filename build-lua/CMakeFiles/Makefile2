@@ -85,12 +85,12 @@ clean: CMakeFiles/saci.dir/clean
 CMakeFiles/saci.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11 "Built target saci"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Built target saci"
 .PHONY : CMakeFiles/saci.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/saci.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/guest/saci-perere/build-lua/CMakeFiles 11
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/guest/saci-perere/build-lua/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/saci.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/guest/saci-perere/build-lua/CMakeFiles 0
 .PHONY : CMakeFiles/saci.dir/rule
@@ -102,7 +102,7 @@ saci: CMakeFiles/saci.dir/rule
 # codegen rule for target.
 CMakeFiles/saci.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/saci.dir/build.make CMakeFiles/saci.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11 "Finished codegen for target saci"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/guest/saci-perere/build-lua/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12 "Finished codegen for target saci"
 .PHONY : CMakeFiles/saci.dir/codegen
 
 # clean rule for target.

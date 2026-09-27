@@ -1,5 +1,7 @@
 #include "saci/orchestrator.hpp"
 
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -14,6 +16,26 @@
 #include "saci/tts.hpp"
 
 namespace saci {
+
+namespace {
+
+// Traduz um lote com qualquer engine que satisfaca o conceito: usa
+// translate_batch quando existe (argos lote, qwen) e cai no por-segmento
+// caso contrario. if constexpr em acao — sem custo de runtime.
+template <typename E>
+std::vector<std::string> translate_all(E& eng,
+                                       const std::vector<std::string>& texts) {
+    if constexpr (requires { eng.translate_batch(texts); }) {
+        return eng.translate_batch(texts);
+    } else {
+        std::vector<std::string> out;
+        out.reserve(texts.size());
+        for (const auto& t : texts) out.push_back(eng.translate(t));
+        return out;
+    }
+}
+
+} // namespace
 
 const char* stage_name(Stage s) {
     switch (s) {
@@ -75,11 +97,13 @@ int Orchestrator::run(const std::string& url,
     for (auto& s : segments) texts.push_back(s.text);
 
     std::vector<std::string> pt;
-    if constexpr (requires { tr.translate_batch(texts); }) {
-        pt = tr.translate_batch(texts);  // caminho rapido v0.2
+    if (eff.translate_backend == "qwen") {
+        // v0.3: LLM open source chines (Qwen/Apache 2.0) via Ollama local
+        QwenEngine q(eff.llm_cmd, eff.llm_model, eff.source_lang, eff.target_lang);
+        pt = translate_all(q, texts);
     } else {
-        pt.reserve(segments.size());
-        for (auto& s : segments) pt.push_back(tr.translate(s.text));
+        ArgosEngine tr(eff.source_lang, eff.target_lang, eff.translate_cmd);
+        pt = translate_all(tr, texts);
     }
 
     // 4. TTS -----------------------------------------------------------
@@ -114,8 +138,28 @@ int Orchestrator::run(const std::string& url,
                         yt_dlp_format_selector(eff.max_height), url};
     sess.narration_path = narration.string();
     sess.player_argv = {eff.player, "--cache=yes", "--really-quiet", "-"};
-    auto h = spawn_mux(sess);
-    int rc = h.wait_all();
+
+    // v0.3 (roadmap item 4): re-spawn do mux em modo fifo. O pump mede a
+    // banda real; prematuro => rede/yt-dlp caiu => tenta de novo com
+    // backoff. Sem fifo_mode, comportamento e o de antes: falha rapida.
+    const int attempts = eff.fifo_mode ? 1 + std::max(0, eff.mux_retries) : 1;
+    int rc = 1;
+    MuxHandle h;
+    for (int a = 1; a <= attempts; ++a) {
+        h = spawn_mux(sess);
+        rc = h.wait_all();
+        if (rc == 0 || !eff.fifo_mode || !h.premature_exit()) break;
+        std::cerr << "[saci] mux caiu prematuramente; re-spawn " << a << "/"
+                  << attempts - 1 << " (backoff " << 2 * a << "s)\n";
+        ::sleep(static_cast<unsigned int>(2 * a));
+    }
+
+    // Persiste a estimativa de banda para a proxima sessao decidir o
+    // degrau inicial com dados reais (1 arquivo pequeno — zero-disco ok).
+    {
+        std::ofstream be(workdir / "bw_estimate.txt");
+        be << static_cast<long>(h.probe().estimate_kbps() + 0.5) << "\n";
+    }
 
     enter(rc == 0 ? Stage::Done : Stage::Error);
     return rc;

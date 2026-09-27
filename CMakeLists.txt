@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(saci VERSION 0.2.0 LANGUAGES CXX)
+project(saci VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +17,7 @@ add_executable(saci
     src/sync.cpp
     src/muxer.cpp
     src/config.cpp
+    src/bw_probe.cpp
     src/orchestrator.cpp
 )
 target_include_directories(saci PRIVATE include)
@@ -30,7 +31,11 @@ if(SACI_WITH_LUA)
     set(SOL2_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
     if(EXISTS "${SOL2_INCLUDE_DIR}/sol/sol.hpp")
         target_compile_definitions(saci PRIVATE SACI_WITH_LUA)
-        target_include_directories(saci PRIVATE ${LUA_INCLUDE_DIR} ${SOL2_INCLUDE_DIR})
+        target_include_directories(saci PRIVATE ${LUA_INCLUDE_DIR})
+        # sol2 e third-party: warnings dele nao sao nossos (SYSTEM)
+        target_include_directories(saci SYSTEM PRIVATE ${SOL2_INCLUDE_DIR})
+        # falso positivo conhecido GCC+sol2 (string literal em get_or)
+        target_compile_options(saci PRIVATE -Wno-array-bounds)
         target_link_libraries(saci PRIVATE ${LUA_LIBRARIES})
     else()
         message(WARNING "vendor/sol/sol.hpp ausente; compilando sem Lua")

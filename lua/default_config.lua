@@ -23,6 +23,17 @@ return {
 
   -- traducao
   translate_cmd    = "argos-translate",
+  -- v0.3: backend "argos" (offline) ou "qwen" (LLM open source chines,
+  -- Apache 2.0, roda local e gratuito via Ollama):
+  --   translate_backend = "qwen",
+  --   llm_cmd           = "ollama",
+  --   llm_model         = "qwen2.5",   -- rode uma vez: ollama pull qwen2.5
+  translate_backend = "argos",
+  llm_cmd           = "ollama",
+  llm_model         = "qwen2.5",
+
+  -- v0.3: re-spawn do mux em modo fifo (quedas de rede). 0 = falha rapida.
+  mux_retries      = 3,
 
   -- sincronia: LIMITES DE NATURALIDADE (invariantes do SyncFitter)
   tempo_min        = 0.85,

@@ -167,16 +167,21 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 2. **yt-dlp como subprocesso**: a extração de URLs segue fora do C++
    (divisão honesta de trabalho — o C++ orquestra; yt-dlp/ffmpeg fazem o
    demux/mux pesado). Alternativa futura: libcurl + API Piped/Invidious.
-3. **Controle adaptativo em runtime**: a estimativa de banda → troca de degrau
-   está modelada (`QualityLadder::select`) mas o loop de feedback em
-   background (thread/co_await medindo taxa do pipe) ainda não existe.
+3. **Controle adaptativo em runtime**: **(medição resolvida na v0.3)** — o pump
+   do mux (`MuxHandle::pump`) mede a vazão real e alimenta o `BandwidthProbe`
+   (percentil 25 + Haar p/ quedas + FFT p/ periodicidade); a estimativa é
+   logada e persistida em `bw_estimate.txt`. **Pendente:** trocar o degrau NO
+   MEIO do stream — streams progressivas do YouTube não admitem troca
+   adaptativa (HLS seria outra fonte); hoje o probe orienta a escolha
+   inicial da PRÓXIMA sessão.
 4. ~~**Tradução em lote**~~ **(resolvido na v0.2)**:
    `ArgosEngine::translate_batch` envia o SRT inteiro numa invocação (caminho
    rápido) e cai no por-segmento quando o CLI devolve contagem de linhas
    inesperada (caminho correto). Janelas SRT intactas em ambos.
-5. **Erros**: falhas de rede no `StreamMux` não tentam re-conectar; o modo
-   `fifo_mode` (sobreviver a quedas com fila circular em disco) está no
-   `Config`/`RingBuffer` mas o re-spawn do mux é futuro.
+5. **Erros**: **(re-spawn resolvido na v0.3)** — em `fifo_mode`, queda prematura
+   (yt-dlp/ffmpeg) dispara re-spawn do mux com backoff, até `mux_retries`.
+   **Pendente:** resume fino por HTTP Range (não recomeçar do zero); o
+   `RingBuffer` em disco segue disponível para essa evolução.
 6. **Segurança/legal**: respeitar os termos do YouTube e direitos autorais —
    uso pessoal, acessibilidade e estudo; legendas/dublagem são conteúdo
    protegido.
@@ -189,8 +194,9 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 |---|---|---|---|
 | 1 | `run_capture2` com stdin+stdout | `proc.hpp/cpp` | ✅ v0.2 (poll não-bloqueante + selftest 300 KiB) |
 | 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` | ✅ v0.2 (batch + fallback por segmento) |
-| 3 | Loop adaptativo de banda → degrau | `stream.hpp`, novo `src/bw_probe.cpp` | pendente |
-| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | pendente |
+| 3 | Loop adaptativo de banda → degrau | `stream.hpp`, `src/bw_probe.cpp` | ✅ v0.3 (pump mede vazão real; FFT/Haar; troca mid-stream fica p/ fonte adaptativa) |
+| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | ✅ v0.3 (backoff + `bw_estimate.txt`; resume por Range é roadmap) |
 | 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp` | pendente |
 | 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
 | 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |
+| 8 | Backend de tradução por LLM (Qwen, Apache 2.0) | `translate.hpp/cpp`, `orchestrator.cpp` | ✅ v0.3 (`QwenEngine` via Ollama; `translate_backend` em Lua) |

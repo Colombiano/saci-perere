@@ -38,6 +38,10 @@ saci::Config parse_kv(const std::string& text) {
         else if (k == "tts_bin") c.tts_bin = v;
         else if (k == "tts_voice") c.tts_voice = v;
         else if (k == "translate_cmd") c.translate_cmd = v;
+        else if (k == "translate_backend") c.translate_backend = v;
+        else if (k == "llm_cmd") c.llm_cmd = v;
+        else if (k == "llm_model") c.llm_model = v;
+        else if (k == "mux_retries") c.mux_retries = std::stoi(v);
         else if (k == "tempo_min") c.tempo_min = std::stod(v);
         else if (k == "tempo_max") c.tempo_max = std::stod(v);
         else if (k == "drift_threshold_ms") c.drift_threshold_ms = std::stol(v);
@@ -70,6 +74,10 @@ Config Config::load(const std::filesystem::path& file) {
     c.tts_bin            = t.get_or<std::string>("tts_bin", "piper");
     c.tts_voice          = t.get_or<std::string>("tts_voice", "");
     c.translate_cmd      = t.get_or<std::string>("translate_cmd", "argos-translate");
+    c.translate_backend  = t.get_or<std::string>("translate_backend", "argos");
+    c.llm_cmd            = t.get_or<std::string>("llm_cmd", "ollama");
+    c.llm_model          = t.get_or<std::string>("llm_model", "qwen2.5");
+    c.mux_retries        = t.get_or("mux_retries", 3);
     c.tempo_min          = t.get_or("tempo_min", 0.85);
     c.tempo_max          = t.get_or("tempo_max", 1.30);
     c.drift_threshold_ms = t.get_or("drift_threshold_ms", 300L);
