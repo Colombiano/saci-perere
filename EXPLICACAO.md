@@ -200,7 +200,7 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 | 1 | `run_capture2` com stdin+stdout | `proc.hpp/cpp` | ✅ v0.2 (poll não-bloqueante + selftest 300 KiB) |
 | 2 | Tradução em lote do SRT | `translate.cpp`, `orchestrator.cpp` | ✅ v0.2 (batch + fallback por segmento) |
 | 3 | Loop adaptativo de banda → degrau | `stream.hpp`, `src/bw_probe.cpp` | ✅ v0.3 (pump mede vazão real; FFT/Haar; troca mid-stream fica p/ fonte adaptativa) |
-| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | ✅ v0.3 (backoff + `bw_estimate.txt`; resume por Range é roadmap) |
+| 4 | Re-spawn do mux (modo fifo) | `muxer.cpp`, `orchestrator.cpp` | ✅ v0.3/v0.5 (backoff + `bw_estimate.txt`; **resume fino por Range com stall detect** — ver ADR-003) |
 | 5 | `co_await` real sobre pipes (io_uring) | `coro.hpp`, `reactor.hpp/cpp`, `muxer.cpp` | ✅ v0.4 (Reactor poll próprio — ver ADR-002; bomba virou `Task<int>`; bugs CLOEXEC e self-pipe) |
 | 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
 | 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |
@@ -305,3 +305,40 @@ antes de puxar um framework novo.
 - Necessidade de **zero-copy** (splice/sendfile via io_uring).
 - Medição mostrando o poll como gargalo (hoje: 0,000021% do orçamento —
   ver ADR-001).
+
+### ADR-003 (v0.5): Resume Range via curl como subprocesso, não cliente HTTP próprio
+
+**Status:** aceita · **Data:** 2026-09-26
+
+**Contexto.** O resume fino precisa baixar bytes de um offset arbitrário
+(`Range: bytes=N-`). Opções: (a) cliente HTTP em C++ próprio (sockets +
+parser de resposta), (b) libcurl linkada, (c) `curl` como subprocesso
+com `--range N-`, trocando apenas o processo-fonte na cadeia do mux.
+
+**Decisão.** (c) `curl` como subprocesso-fonte nas retomadas.
+
+**Fatos verificados.**
+
+1. **Zero-dep C++ preservado.** O EXPLICACAO já listava libcurl como
+   "alternativa futura" para a extração de URLs; um cliente próprio são
+   centenas de linhas para parse de HTTP/1.1, redirects, chunked encoding
+   e TLS — TLS elimina (a) e (b) na prática rural (certificados,
+   SNI, atualização de CA). curl já resolveu tudo isso, em toda máquina.
+2. **Troca cirúrgica na cadeia.** A fonte já é um processo na cadeia de
+   pipes; trocar yt-dlp por curl na retomada não altera o mux, o ffmpeg
+   nem o player. A bomba mede bytes dos dois da mesma forma.
+3. **O offset é nosso, não do curl.** `-C -` (continue) do curl depende
+   de arquivo em disco — quebraria o zero-disco. `--range N-` com N
+   calculado pela bomba (bytes entregues ao ffmpeg + pendências) é
+   exato e testável sem rede (fontes falsas no selftest).
+4. **Risco assumido e documentado:** o servidor precisa honrar Range
+   (206). O googlevideo do YouTube honra; se um dia não honrar, o curl
+   recebe 200 com o corpo inteiro — mitigação futura: checar
+   `Content-Range` na primeira janela e abortar a retomada se vier 200.
+
+**Gatilhos de reavaliação.**
+
+- Necessidade de métricas/telemetria HTTP finas (status, headers) por
+  retomada → curl com `--write-out` cobre 90%.
+- TLS pinado ou proxies rurais autenticados → aí sim libcurl ou cliente
+  próprio entram na conversa.

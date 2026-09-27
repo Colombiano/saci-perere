@@ -6,8 +6,8 @@ redemoinho de pipes — e não deixa rastro no seu disco.
 
 ![Licença](https://img.shields.io/github/license/Colombiano/saci-perere)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-blue)
-![versão](https://img.shields.io/badge/vers%C3%A3o-0.4.0-orange)
-![selftest](https://img.shields.io/badge/selftest-9%2F9-brightgreen)
+![versão](https://img.shields.io/badge/vers%C3%A3o-0.5.0-orange)
+![selftest](https://img.shields.io/badge/selftest-11%2F11-brightgreen)
 
 > ⚖️ **Aviso legal**: o Saci Pererê respeita os Termos de Serviço do YouTube e
 > a legislação de direitos autorais. Foi construído para **uso pessoal,
@@ -97,6 +97,23 @@ estimada com folga de 25%.
 - **Degrau real do probe**: `bw_estimate.txt` da sessão anterior agora
   limita o degrau inicial via escada (consteval ou Lua).
 - Selftest: **9/9** (novos: reactor e pump_fds ponta a ponta).
+
+### Novidades da v0.5
+
+- **Resume fino por HTTP Range**: se a fonte de vídeo cai, **só ela
+  renasce** — `curl --range <offset>-` na URL direta (resolvida com
+  `yt-dlp -g`) — e o mux nem percebe: o vídeo "pausa" e continua do byte
+  exato, sem re-render e sem reabrir o player. O offset é calculado como
+  bytes entregues ao ffmpeg + pendências do buffer — o stream segue sem
+  duplicar e sem furar.
+- **Detector de stall**: fonte viva mas muda por N segundos → kill +
+  resume no mesmo offset. Feito para a realidade rural: queda silenciosa
+  de link é pior que queda barulhenta.
+- **Spawner de fontes como estratégia**: `SourceSpawner` injetável — o
+  selftest testa resume e stall com fontes falsas (`sh`), sem rede.
+- Sem URL direta (`yt-dlp -g` falhou)? Cai no comportamento v0.4:
+  re-spawn completo do mux em `fifo_mode`.
+- Selftest: **11/11**.
 
 ### Roadmap de idiomas
 
@@ -273,6 +290,24 @@ estimated bandwidth with a 25% margin.
   now caps the initial rung via the ladder (consteval or Lua).
 - Selftest: **9/9** (new: reactor and end-to-end pump_fds).
 
+### What's new in v0.5
+
+- **Fine-grained HTTP Range resume**: if the video source dies, **only
+  the source is respawned** — `curl --range <offset>-` against the direct
+  URL (resolved via `yt-dlp -g`) — and the mux never notices: the video
+  "pauses" and continues from the exact byte, with no re-render and no
+  player restart. The offset is computed as bytes delivered to ffmpeg +
+  buffer pending — the stream continues without duplicating or skipping.
+- **Stall detector**: source alive but silent for N seconds → kill +
+  resume at the same offset. Built for the rural reality: a silent link
+  drop is worse than a loud one.
+- **Source spawning as a strategy**: injectable `SourceSpawner` — the
+  selftest exercises resume and stall with fake sources (`sh`), no
+  network needed.
+- No direct URL (yt-dlp -g failed)? Falls back to v0.4 behavior: full
+  mux re-spawn in `fifo_mode`.
+- Selftest: **11/11**.
+
 ### Language roadmap
 
 Today's target is **pt-BR**. In subsequent releases the same pipeline will
@@ -411,6 +446,23 @@ banda estimada con un margen del 25%.
   ahora limita el escalón inicial vía la escalera (consteval o Lua).
 - Selftest: **9/9** (nuevos: reactor y pump_fds de punta a punta).
 
+### Novedades de la v0.5
+
+- **Resume fino por HTTP Range**: si la fuente de vídeo cae, **solo ella
+  revive** — `curl --range <offset>-` en la URL directa (resuelta con
+  `yt-dlp -g`) — y el mux ni se entera: el vídeo "pausa" y continúa del
+  byte exacto, sin re-render y sin reabrir el player. El offset se
+  calcula como bytes entregados a ffmpeg + pendientes del búfer — el
+  stream sigue sin duplicar ni saltar.
+- **Detector de stall**: fuente viva pero muda por N segundos → kill +
+  resume en el mismo offset. Hecho para la realidad rural: una caída
+  silenciosa del enlace es peor que una ruidosa.
+- **Spawner de fuentes como estrategia**: `SourceSpawner` inyectable —
+  el selftest prueba resume y stall con fuentes falsas (`sh`), sin red.
+- ¿Sin URL directa (falló `yt-dlp -g`)? Vuelve al comportamiento v0.4:
+  re-spawn completo del mux en `fifo_mode`.
+- Selftest: **11/11**.
+
 ### Roadmap de idiomas
 
 Hoy el destino es **pt-BR**. En versiones posteriores, el mismo pipeline
@@ -538,6 +590,21 @@ YouTube 原始音轨**按设计被丢弃**:TTS 旁白取而代之,画质选择�
 - **探测器真正作用于档位**:上一会话的 `bw_estimate.txt` 现在通过阶梯
   (consteval 或 Lua)限制初始档位。
 - Selftest:**9/9**(新增:reactor 和端到端 pump_fds)。
+
+### v0.5 新特性
+
+- **基于 HTTP Range 的精细续传**:如果视频源掉线,**只有它会重生**
+  —— 用 `curl --range <offset>-` 请求直链(URL 由 `yt-dlp -g` 解
+  析)—— 而 mux 毫无感知:视频"暂停"后从精确字节继续,无需重渲染、
+  无需重开播放器。偏移量 = 已交付给 ffmpeg 的字节 + 缓冲区待发字节
+  —— 流式传输不重复、不断洞。
+- **停滞探测器**:源活着但 N 秒无字节 → 杀死并在同一偏移续传。为农
+  村现实而做:静默掉线比响亮掉线更糟。
+- **源生成器即策略**:可注入的 `SourceSpawner` —— selftest 用假源
+  (`sh`)测试续传和停滞,无需网络。
+- 没有直链(`yt-dlp -g` 失败)?回退到 v0.4 行为:fifo_mode 下完整
+  重生 mux。
+- Selftest:**11/11**。
 
 ### 语言路线图
 

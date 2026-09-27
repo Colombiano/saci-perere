@@ -1,14 +1,16 @@
 #pragma once
 // Ontologia: SESSAO DE MUX (ffmpeg como unico intercalador A/V).
 // Quatro processos, com o saci como BOMBA (pump) no meio do caminho:
-//   yt-dlp (video-only, stdout) -> [PUMP saci] -> ffmpeg (mux+loudnorm)
-//        -> player
-// O pump mede a vazao real do video e alimenta o BandwidthProbe (v0.3):
-// item 3 do roadmap (feedback de banda) comeca AQUI, medindo o sinal real
-// em vez de estimar no escuro.
+//   yt-dlp/curl (video-only, stdout) -> [BOMBA saci] -> ffmpeg -> player
+// O pump mede a vazao real e, na v0.5, faz RESUME FINO: se a FONTE cai,
+// so ela renasce — com `curl --range <offset>-` na URL direta — e o mux
+// nem percebe (o video "pausa" e continua do byte exato). ffmpeg/player
+// nunca reiniciam; sem re-render, sem reabrir o player.
 // Sincronizacao PTS/DTS por construcao: um unico muxer.
-#include <atomic>
+#include <cstdint>
+#include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "saci/bw_probe.hpp"
@@ -21,14 +23,33 @@ struct MuxSession {
     std::vector<std::string> source_argv;  // ex.: yt-dlp -f ... -o - URL
     std::string narration_path;            // narracao.mp3 (lado A do mux)
     std::vector<std::string> player_argv;  // ex.: mpv --cache=yes -
+    // v0.5: URL direta do video (yt-dlp -g) para resume fino por Range.
+    // Vazia => sem resume: comportamento v0.4 (re-spawn completo no fifo).
+    std::string direct_url;
+    int source_retries = 0;                // retomadas permitidas da fonte
 };
 
-// Bomba (v0.4, roadmap item 5): yt-dlp -> ffmpeg COMO COROUTINE.
-// Cada leitura/escrita e um co_await de prontidao no Reactor — nada de
-// poll() manual. `done` segue a convencao: 0 = rodando; code+1 ao final.
-// Fecha os fds ao terminar. Exposta para o selftest (head|pump|wc).
-Task<int> pump_fds(Reactor& reactor, int q_read, int f_write,
-                   BandwidthProbe& probe, std::atomic<int>& done);
+// Como (re)criar a FONTE do video: attempt=1..N, offset=proximo byte que
+// a fonte deve enviar (0 na primeira). Devolve {pid, fd_de_leitura}.
+// O pump reapza o pid ao fim de cada tentativa (waitpid proprio).
+using SourceSpawner =
+    std::function<std::pair<pid_t, int>(int attempt, std::uint64_t offset)>;
+
+struct PumpOptions {
+    SourceSpawner spawn_source;     // obrigatorio
+    int max_source_retries = 0;     // 0 = sem resume (fonte unica)
+    double stall_seconds = 6.0;     // fonte muda por este tempo => kill+resume
+};
+
+// A bomba como coroutine (v0.4/0.5): cada leitura/escrita e um co_await
+// de prontidao no Reactor. Na v0.5, loop externo de (re)spawn da FONTE
+// com offset exato: bytes escritos no ffmpeg + pendencias no buffer —
+// o stream continua sem duplicar nem furar. `done`: 0 = rodando;
+// code+1 ao final. Fecha f_write ao terminar; o spawner e o pump fecham
+// os fds de leitura de cada fonte. Exposta para o selftest.
+Task<int> pump_fds(Reactor& reactor, int f_write, BandwidthProbe& probe,
+                   std::atomic<int>& done, PumpOptions opts,
+                   std::uint64_t start_offset = 0);
 
 // Estrutura de processos vivos. ~MuxHandle faz waitpid de todos.
 class MuxHandle {
@@ -40,25 +61,27 @@ public:
     MuxHandle& operator=(const MuxHandle&) = delete;
     ~MuxHandle();
 
-    // Roda a bomba como coroutine (reator proprio) e depois waitpid de todos.
-    // Retorna exit code do ffmpeg (ou do primeiro a falhar).
+    // Roda a bomba como coroutine (reator proprio) e depois waitpid do
+    // ffmpeg e do player (as FONTES sao reapadas pelo proprio pump).
+    // Retorna exit code do ffmpeg (ou o codigo da bomba em falha).
     int wait_all();
 
-    // true se yt-dlp/ffmpeg morreram ANTES do fim natural (rede caiu,
-    // processo killado). O orchestrator usa isso para o re-spawn (fifo).
+    // true se a bomba/fonte falharam DEPOIS de esgotar as retomadas.
     bool premature_exit() const { return premature_; }
 
     // Medicao acumulada da bomba (vazao observada no ultimo wait_all).
     const BandwidthProbe& probe() const { return probe_; }
 private:
-    std::vector<int> pids_;      // todos (para ~MuxHandle reapar quem sobrar)
-    std::vector<int> fds_;       // pipes que o handle fecha
-    int ytdlp_pid_ = -1;
+    std::vector<int> pids_;      // ffmpeg + player (fontes: o pump cuida)
+    std::vector<int> fds_;
     int ff_pid_ = -1;
-    int q_read_ = -1;    // leitura do yt-dlp
-    int f_write_ = -1;   // escrita no ffmpeg
+    int f_write_ = -1;   // escrita no ffmpeg (a bomba fecha)
     bool premature_ = false;
     BandwidthProbe probe_;
+    // stash da sessao para o spawner de fontes (movido em spawn_mux)
+    std::vector<std::string> src_argv_;
+    std::string direct_url_;
+    int source_retries_ = 0;
     friend MuxHandle spawn_mux(const MuxSession&);
 };
 

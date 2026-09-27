@@ -202,7 +202,23 @@ int Orchestrator::run(const std::string& url,
                                     yt_dlp_format_selector(cap), url},
                     .narration_path = narration.string(),
                     .player_argv = {eff.player, "--cache=yes",
-                                    "--really-quiet", "-"}};
+                                    "--really-quiet", "-"},
+                    .direct_url = "",
+                    .source_retries = 0};
+
+    // v0.5: URL direta (yt-dlp -g) alimenta o resume fino por Range.
+    // Só resolve se for usar (fifo + retries); senão, re-spawn completo.
+    if (eff.fifo_mode && eff.mux_retries > 0) {
+        auto [rc, out] = run_capture({"yt-dlp", "-g", "-f",
+                                      yt_dlp_format_selector(cap), url});
+        if (rc == 0 && !out.empty()) {
+            sess.direct_url = out.substr(0, out.find_first_of("\r\n"));
+            sess.source_retries = eff.mux_retries;
+            std::cerr << "[saci] URL direta resolvida; resume fino ativo\n";
+        } else {
+            std::cerr << "[saci] yt-dlp -g falhou; resume fino desativado\n";
+        }
+    }
 
     // v0.3 (roadmap item 4): re-spawn do mux em modo fifo. O pump mede a
     // banda real; prematuro => rede/yt-dlp caiu => tenta de novo com

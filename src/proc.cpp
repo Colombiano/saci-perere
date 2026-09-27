@@ -274,23 +274,31 @@ int selftest() {
             check("reactor: co_await Readable retoma no evento", false, "pipe falhou");
         }
     }
-    // 9) pump_fds ponta a ponta: head | bomba-coroutine | wc -c ----------
+    // 9) pump_fds: fluxo simples (fonte unica, exit 0) -------------------
     {
-        int q[2], f[2];
-        if (::pipe(q) == 0 && ::pipe(f) == 0) {
-            for (int fd : {q[0], q[1], f[0], f[1]}) {
-                ::fcntl(fd, F_SETFD, ::fcntl(fd, F_GETFD) | FD_CLOEXEC);
-            }
+        int f[2];
+        if (::pipe(f) == 0) {
+            ::fcntl(f[0], F_SETFD, ::fcntl(f[0], F_GETFD) | FD_CLOEXEC);
+            ::fcntl(f[1], F_SETFD, ::fcntl(f[1], F_GETFD) | FD_CLOEXEC);
             Reactor reactor;
             BandwidthProbe probe;
             std::atomic<int> done{0};
-            const pid_t prod = ::fork();  // head -c 100000 /dev/zero > q
-            if (prod == 0) {
-                ::dup2(q[1], STDOUT_FILENO);
-                ::execlp("head", "head", "-c", "100000", "/dev/zero", nullptr);
-                _exit(127);
-            }
-            ::close(q[1]);
+            PumpOptions opts;
+            opts.spawn_source = [](int, std::uint64_t) -> std::pair<pid_t, int> {
+                int q[2];
+                ::pipe(q);
+                ::fcntl(q[0], F_SETFD, ::fcntl(q[0], F_GETFD) | FD_CLOEXEC);
+                ::fcntl(q[1], F_SETFD, ::fcntl(q[1], F_GETFD) | FD_CLOEXEC);
+                const pid_t pid = ::fork();
+                if (pid == 0) {
+                    ::dup2(q[1], STDOUT_FILENO);
+                    ::execlp("sh", "sh", "-c", "head -c 100000 /dev/zero", nullptr);
+                    _exit(127);
+                }
+                ::close(q[1]);
+                return {pid, q[0]};
+            };
+            opts.max_source_retries = 0;
             const pid_t cons = ::fork();  // wc -c < f
             if (cons == 0) {
                 ::dup2(f[0], STDIN_FILENO);
@@ -298,18 +306,116 @@ int selftest() {
                 _exit(127);
             }
             ::close(f[0]);
-            auto task = pump_fds(reactor, q[0], f[1], probe, done);
+            auto task = pump_fds(reactor, f[1], probe, done, opts);
             done.wait(0);
-            int st1 = 0, st2 = 0;
-            ::waitpid(prod, &st1, 0);
-            ::waitpid(cons, &st2, 0);
-            const bool ok_pump = WIFEXITED(st1) && WEXITSTATUS(st1) == 0 &&
-                                 WIFEXITED(st2) && WEXITSTATUS(st2) == 0 &&
-                                 done.load() - 1 == 0;
-            check("pump_fds: 100000 bytes atravessaram a coroutine", ok_pump,
+            int stc = 0;
+            ::waitpid(cons, &stc, 0);
+            check("pump_fds: 100000 bytes numa fonte so", done.load() - 1 == 0,
                   "code=" + std::to_string(done.load() - 1));
         } else {
-            check("pump_fds: 100000 bytes atravessaram a coroutine", false,
+            check("pump_fds: 100000 bytes numa fonte so", false, "pipe falhou");
+        }
+    }
+    // 10) RESUME FINO: fonte cai em 10000 e volta do byte exato ----------
+    {
+        int f[2];
+        if (::pipe(f) == 0) {
+            ::fcntl(f[0], F_SETFD, ::fcntl(f[0], F_GETFD) | FD_CLOEXEC);
+            ::fcntl(f[1], F_SETFD, ::fcntl(f[1], F_GETFD) | FD_CLOEXEC);
+            Reactor reactor;
+            BandwidthProbe probe;
+            std::atomic<int> done{0};
+            PumpOptions opts;
+            opts.spawn_source = [](int attempt, std::uint64_t off)
+                    -> std::pair<pid_t, int> {
+                int q[2];
+                ::pipe(q);
+                ::fcntl(q[0], F_SETFD, ::fcntl(q[0], F_GETFD) | FD_CLOEXEC);
+                ::fcntl(q[1], F_SETFD, ::fcntl(q[1], F_GETFD) | FD_CLOEXEC);
+                const pid_t pid = ::fork();
+                if (pid == 0) {
+                    ::dup2(q[1], STDOUT_FILENO);
+                    if (attempt == 1)
+                        ::execlp("sh", "sh", "-c",
+                                 "head -c 10000 /dev/zero; exit 1", nullptr);
+                    // attempt 2: so completa se o offset for EXATAMENTE 10000
+                    const std::string cmd =
+                        "tail -c +" + std::to_string(off + 1) +
+                        " /dev/zero | head -c 5000";
+                    ::execlp("sh", "sh", "-c", cmd.c_str(), nullptr);
+                    _exit(127);
+                }
+                ::close(q[1]);
+                return {pid, q[0]};
+            };
+            opts.max_source_retries = 1;
+            const pid_t cons = ::fork();  // wc -c < f
+            if (cons == 0) {
+                ::dup2(f[0], STDIN_FILENO);
+                ::execlp("wc", "wc", "-c", nullptr);
+                _exit(127);
+            }
+            ::close(f[0]);
+            auto task = pump_fds(reactor, f[1], probe, done, opts);
+            done.wait(0);
+            int stc = 0;
+            ::waitpid(cons, &stc, 0);
+            check("resume fino: 10000 + 5000 = 15000 bytes sem buraco",
+                  done.load() - 1 == 0,
+                  "code=" + std::to_string(done.load() - 1));
+        } else {
+            check("resume fino: 10000 + 5000 = 15000 bytes sem buraco", false,
+                  "pipe falhou");
+        }
+    }
+    // 11) STALL: fonte viva mas muda => kill e resume --------------------
+    {
+        int f[2];
+        if (::pipe(f) == 0) {
+            ::fcntl(f[0], F_SETFD, ::fcntl(f[0], F_GETFD) | FD_CLOEXEC);
+            ::fcntl(f[1], F_SETFD, ::fcntl(f[1], F_GETFD) | FD_CLOEXEC);
+            Reactor reactor;
+            BandwidthProbe probe;
+            std::atomic<int> done{0};
+            PumpOptions opts;
+            opts.spawn_source = [](int attempt, std::uint64_t)
+                    -> std::pair<pid_t, int> {
+                int q[2];
+                ::pipe(q);
+                ::fcntl(q[0], F_SETFD, ::fcntl(q[0], F_GETFD) | FD_CLOEXEC);
+                ::fcntl(q[1], F_SETFD, ::fcntl(q[1], F_GETFD) | FD_CLOEXEC);
+                const pid_t pid = ::fork();
+                if (pid == 0) {
+                    ::dup2(q[1], STDOUT_FILENO);
+                    if (attempt == 1)
+                        ::execlp("sh", "sh", "-c",
+                                 "sleep 8; head -c 1000 /dev/zero", nullptr);
+                    else
+                        ::execlp("sh", "sh", "-c",
+                                 "head -c 1000 /dev/zero", nullptr);
+                    _exit(127);
+                }
+                ::close(q[1]);
+                return {pid, q[0]};
+            };
+            opts.max_source_retries = 1;
+            opts.stall_seconds = 3.0;
+            const pid_t cons = ::fork();  // wc -c < f
+            if (cons == 0) {
+                ::dup2(f[0], STDIN_FILENO);
+                ::execlp("wc", "wc", "-c", nullptr);
+                _exit(127);
+            }
+            ::close(f[0]);
+            auto task = pump_fds(reactor, f[1], probe, done, opts);
+            done.wait(0);
+            int stc = 0;
+            ::waitpid(cons, &stc, 0);
+            check("stall: fonte muda => kill + resume no offset",
+                  done.load() - 1 == 0,
+                  "code=" + std::to_string(done.load() - 1));
+        } else {
+            check("stall: fonte muda => kill + resume no offset", false,
                   "pipe falhou");
         }
     }
