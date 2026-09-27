@@ -200,3 +200,61 @@ MuxSession --pipes--> Player      Config --governs--> todos os estágios
 | 6 | Políticas por-site em Lua (`sites`) | `config.hpp/cpp`, `lua/default_config.lua` | ✅ v0.2 (sol2 vendored; primeira regra que casa vence) |
 | 7 | Idiomas `es` e `zh` além de `pt-BR` | pares `source_lang`/`target_lang` | roadmap de idiomas |
 | 8 | Backend de tradução por LLM (Qwen, Apache 2.0) | `translate.hpp/cpp`, `orchestrator.cpp` | ✅ v0.3 (`QwenEngine` via Ollama; `translate_backend` em Lua) |
+
+---
+
+## 7. Decisões (ADR)
+
+Registro de decisões de arquitetura com contexto, fatos verificados e
+gatilhos objetivos de reavaliação. Regra da casa: uma decisão só é reaberta
+com um fato novo (número, licença, dependência) — não com gosto.
+
+### ADR-001 (v0.3): DSP própria (Cooley-Tukey radix-2) em vez do KFR
+
+**Status:** aceita · **Data:** 2026-09-26
+
+**Contexto.** O probe de banda da v0.3 usa FFT (N=64, 1× a cada janela de
+2 s), wavelet de Haar e estimador de percentil. Pergunta: adotar o
+framework [kfrlib/kfr](https://github.com/kfrlib/kfr) no lugar da
+implementação própria seria mais robusto e mais rápido?
+
+**Decisão.** Manter a implementação própria. O KFR não é adotado.
+
+**Fatos verificados.**
+
+1. **Falsa dicotomia.** Cooley-Tukey é a *família de algoritmos* que o KFR
+   implementa (otimizada com split-radix, SIMD e dispatch). A escolha real
+   é hand-rolled radix-2 vs. framework — e a nossa `fft64` já é
+   Cooley-Tukey iterativa com bit-reversal.
+2. **Licença incompatível com o projeto.** O KFR é dual
+   GPLv2+/comercial. O saci é MIT. Adotar o KFR forçaria relicenciar o
+   projeto para GPLv2+ ou comprar licença comercial.
+3. **O DSP não é gargalo — medido, não opinado.** Benchmark na máquina
+   alvo (`g++ -O2`, N=64): **0.429 µs/FFT**. Chamada 1× a cada 2 s ⇒
+   **0.000021% de 1 núcleo**. O gargalo do pipeline é I/O de rede (o pump
+   esperando a banda rural). Ganho de 100× na FFT mudaria 0.04% do nada.
+4. **Build rural.** A fft64 é C++ puro, zero dependências, compila em
+   GCC 12+ sem nada externo. O KFR adicionaria uma biblioteca grande
+   (ainda que sem deps externas) para uma função de 40 linhas já coberta
+   pelo selftest (senoide → periodicidade 1.000; constante → 0.000).
+
+**Consequências.**
+
+- ✅ Projeto segue MIT, build intacto, superfície de dependência não cresce.
+- ✅ Selftest continua validando o DSP localmente, sem fixtures externas.
+- ❌ Perdemos: tamanhos não-potência-de-2, filtros IIR/FIR prontos,
+  resampling, SIMD NEON/AVX e a maturidade comprovada do KFR (usado em
+  pesquisa de ondas gravitacionais, LIGO/Virgo/KAGRA).
+
+**Gatilhos de reavaliação** (qualquer um, com número novo na mão):
+
+- Janela espectral **> ~4096 pontos** ou taxa de chamada alta (≥ 1 FFT/s).
+- Necessidade real de **filtro IIR/FIR** (suavizar a estimativa do probe),
+  **resampling** de áudio das utterances ou **DCT**.
+- Alvo **ARM/NEON** onde SIMD seja crítico e medido.
+- **N** não-potência-de-2 se tornado requisito.
+
+**Caminhos caso um gatilho dispare:** (a) licença comercial do KFR;
+(b) relicenciar o saci para GPLv2+; (c) usar a FFT da `libavutil` do
+FFmpeg — **já é dependência do projeto** — via subprocesso ou linkagem,
+antes de puxar um framework novo.
