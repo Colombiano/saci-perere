@@ -10,8 +10,8 @@ SHIM="$(cd "$(dirname "$0")" && pwd)/termux_ollama_shim.sh"
 
 if [ ! -f "$GGUF" ]; then
     echo "termux_config_qwen: modelo GGUF não encontrado em $GGUF" >&2
-    echo "  baixe no Wi-Fi com curl (uma linha só; -C - retoma se cair), ex.:" >&2
-    echo "  curl -L -C - -o \"$GGUF\" \"https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf\"" >&2
+    echo "  baixe no Wi-Fi (uma linha; retoma se a rede cair):" >&2
+    echo "  bash tools/termux_get_model.sh" >&2
     exit 66
 fi
 if [ ! -f "$CFG" ]; then
