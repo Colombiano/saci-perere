@@ -53,7 +53,9 @@ echo "== 3/5 build do saci (com Lua) =="
 # tira o CMakeCache de uma tentativa anterior falha (reconfigura limpo)
 rm -f build-termux/CMakeCache.txt
 cmake -B build-termux -DCMAKE_BUILD_TYPE=Release -DSACI_WITH_LUA=ON
-cmake --build build-termux -j"$(nproc)"
+# '--parallel' e' aceito desde o cmake 3.12; '-j4' colado quebra em alguns
+# cmakes (ex.: o do Termux: "Unknown argument -j4").
+cmake --build build-termux --parallel "$(nproc)"
 ./build-termux/saci --selftest
 
 echo "== 4/5 install em \$PREFIX (binário + man page) =="
