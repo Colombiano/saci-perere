@@ -25,8 +25,24 @@ fi
 
 echo "== 1/5 pacotes (pkg) =="
 pkg update -y
-pkg install -y clang cmake make git ffmpeg mpv curl python python-pip \
-    lua54 espeak-ng
+# 'espeak' é o nome do PACOTE no Termux (o binário instalado é espeak-ng).
+# Blocos separados de propósito: o apt aborta TODA a linha se um nome não
+# existe — assim um erro não derruba as demais dependências.
+if ! pkg install -y clang cmake make git ffmpeg mpv curl python python-pip lua54; then
+    cat >&2 <<'FIM'
+saci-termux: falha ao instalar pacotes essenciais. Se vários pacotes vieram
+com "Unable to locate", seu Termux é provavelmente o da PLAY STORE (repo
+congelado em 2020). Migre para o Termux do F-Droid e rode de novo.
+FIM
+    exit 69
+fi
+pkg install -y espeak || pkg install -y espeak-ng || true
+ESPEAK_BIN="$(command -v espeak-ng || command -v espeak || true)"
+if [ -z "$ESPEAK_BIN" ]; then
+    echo "saci-termux: nenhum TTS encontrado (nem espeak-ng nem espeak)." >&2
+    exit 69
+fi
+echo "TTS: $ESPEAK_BIN"
 
 echo "== 2/5 yt-dlp (pip) =="
 pip install --upgrade yt-dlp

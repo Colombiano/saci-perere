@@ -20,6 +20,13 @@ if [ -z "$out" ]; then
     exit 64
 fi
 
+ESPEAK_BIN="$(command -v espeak-ng || command -v espeak || true)"
+if [ -z "$ESPEAK_BIN" ]; then
+    echo "termux_tts_espeak: nem espeak-ng nem espeak encontrados no PATH" >&2
+    echo "  instale com: pkg install -y espeak" >&2
+    exit 69
+fi
+
 text=$(cat)
 # -s 170: ritmo de fala; o SyncFit ajusta velocidade/posição depois (atempo).
-exec espeak-ng -v pt-br -s 170 -w "$out" -- "$text"
+exec "$ESPEAK_BIN" -v pt-br -s 170 -w "$out" -- "$text"
