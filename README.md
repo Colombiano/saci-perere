@@ -203,6 +203,20 @@ piper é glibc-only). Tradução: Argos se o pip permitir; se não, o script
 orienta o plano B Qwen via llama.cpp (`tools/termux_ollama_shim.sh`). O
 workdir respeita `$TMPDIR` — no Android, `/tmp` não existe.
 
+**Status (v0.7.x): validado em aparelho real.** Pipeline completo
+(`FetchSubs → Parse → Translate → Tts → SyncFit → Render → StreamMux →
+mpv`) executado no Termux (F-Droid) — voz espeak-ng, tradução Qwen2.5-0.5B
+(Apache 2.0) no llama.cpp local, áudio via opensles do Android.
+
+**Próximos passos (Android, próximo ciclo):**
+1. `pkg install llama-cpp-backend-vulkan` — usar a GPU do aparelho
+   (hoje o Translate leva ~minutos/segmento na CPU);
+2. piper compilado pra aarch64 no lugar do espeak-ng (voz neural);
+3. prompt few-shot no QwenEngine pra cortar traduções inventadas;
+4. `deno` como JS runtime do yt-dlp (o warning EJS vira erro em breve);
+5. flags do llama-server (`-t`, cache) pra reduzir latência por chamada;
+6. sessões longas: `termux-wake-lock` (tela apagada congela o Termux).
+
 ### Uso
 
 ```bash
@@ -463,6 +477,21 @@ binary is glibc-only). Translation: Argos if pip cooperates; otherwise the
 script prints the Qwen-via-llama.cpp plan B (`tools/termux_ollama_shim.sh`).
 The workdir honors `$TMPDIR` — `/tmp` doesn't exist on Android.
 
+**Status (v0.7.x): validated on a real device.** Full pipeline
+(`FetchSubs → Parse → Translate → Tts → SyncFit → Render → StreamMux →
+mpv`) running on Termux (F-Droid) — espeak-ng voice, Qwen2.5-0.5B
+(Apache 2.0) translation on local llama.cpp, audio through Android
+opensles.
+
+**Next steps (Android, next cycle):**
+1. `pkg install llama-cpp-backend-vulkan` — use the phone's GPU
+   (Translate currently takes ~minutes/segment on CPU);
+2. piper compiled for aarch64 instead of espeak-ng (neural voice);
+3. few-shot prompt in QwenEngine to stop hallucinated translations;
+4. `deno` as yt-dlp's JS runtime (the EJS warning becomes an error soon);
+5. llama-server flags (`-t`, cache) to cut per-call latency;
+6. long sessions: `termux-wake-lock` (screen off freezes Termux).
+
 ### Usage
 
 ```bash
@@ -675,6 +704,21 @@ es glibc-only). Traducción: Argos si pip coopera; si no, el script imprime
 el plan B Qwen vía llama.cpp (`tools/termux_ollama_shim.sh`). El workdir
 respeta `$TMPDIR` — en Android no existe `/tmp`.
 
+**Estado (v0.7.x): validado en un dispositivo real.** Pipeline completo
+(`FetchSubs → Parse → Translate → Tts → SyncFit → Render → StreamMux →
+mpv`) corriendo en Termux (F-Droid) — voz espeak-ng, traducción
+Qwen2.5-0.5B (Apache 2.0) en llama.cpp local, audio por opensles de
+Android.
+
+**Próximos pasos (Android, próximo ciclo):**
+1. `pkg install llama-cpp-backend-vulkan` — usar la GPU del móvil
+   (hoy Translate tarda ~minutos/segmento en CPU);
+2. piper compilado para aarch64 en vez de espeak-ng (voz neuronal);
+3. prompt few-shot en QwenEngine para cortar traducciones inventadas;
+4. `deno` como JS runtime de yt-dlp (el warning EJS será error pronto);
+5. flags de llama-server (`-t`, caché) para bajar la latencia;
+6. sesiones largas: `termux-wake-lock` (pantalla apagada congela Termux).
+
 ### Uso
 
 ```bash
@@ -872,6 +916,20 @@ espeak-ng),带 Lua 编译,把 `saci` + man page 装进 `$PREFIX`,并生成
 二进制只支持 glibc)。翻译:pip 装得上 Argos 就用 Argos;装不上时
 脚本会打印 Qwen + llama.cpp 的备选方案(`tools/termux_ollama_shim.sh`)。
 workdir 遵循 `$TMPDIR` —— Android 上没有 `/tmp`。
+
+**状态(v0.7.x):已在真机验证。** 完整流水线
+(`FetchSubs → Parse → Translate → Tts → SyncFit → Render → StreamMux →
+mpv`)已在 Termux(F-Droid)上运行 —— espeak-ng 语音、本地 llama.cpp 上的
+Qwen2.5-0.5B(Apache 2.0)翻译、音频走 Android opensles。
+
+**后续步骤(Android,下轮开发):**
+1. `pkg install llama-cpp-backend-vulkan` —— 调用手机 GPU(目前 CPU 上
+   Translate 每段约需数分钟);
+2. 用 aarch64 原生编译的 piper 替换 espeak-ng(神经音色);
+3. 在 QwenEngine 中加入 few-shot 提示词,减少幻觉翻译;
+4. 为 yt-dlp 安装 `deno` 作为 JS runtime(EJS 警告即将变为报错);
+5. 调整 llama-server 参数(`-t`、缓存)降低每次调用延迟;
+6. 长时间会话先执行 `termux-wake-lock`(息屏会冻结 Termux)。
 
 ### 使用
 
