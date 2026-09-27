@@ -14,6 +14,15 @@
 # ~/.local/share/saci/llama-server.log
 set -euo pipefail
 
+# Diagnóstico (barato, decisivo): se ~/.local/share/saci/shim-debug.log NÃO
+# ganhar entrada numa chamada do saci, o exec falhou antes do shim nascer.
+DBG="$HOME/.local/share/saci/shim-debug.log"
+{
+    echo "=== $(date) | argv: $*"
+    echo "    PATH=$PATH"
+    echo "    PWD=$PWD"
+} >> "$DBG" 2>/dev/null || true
+
 [ "${1:-}" = "run" ] || { echo "shim: só entendo 'ollama run <modelo>'" >&2; exit 64; }
 
 GGUF="${SACI_GGUF:-$HOME/.local/share/saci/qwen.gguf}"
@@ -68,6 +77,10 @@ resp=$(curl -s --max-time 300 -w $'\n%{http_code}' \
     -d "$payload")
 http=${resp##*$'\n'}
 body=${resp%$'\n'*}
+{
+    echo "    http=$http"
+    echo "    body=$(printf '%s' "$body" | head -c 200)"
+} >> "$DBG" 2>/dev/null || true
 if [ "$http" != "200" ]; then
     echo "shim: HTTP $http — $(printf '%s' "$body" | head -c 400)" >&2
     exit 1
